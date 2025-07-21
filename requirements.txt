@@ -1,0 +1,11 @@
+# Core libraries
+openai>=1.97.0
+langchain>=0.2.10
+
+# Data handling
+pandas>=2.2.2
+
+# Jupyter notebooks 
+notebook>=7.2.2
+
+# Testing 
