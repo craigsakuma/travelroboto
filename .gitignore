@@ -1,0 +1,82 @@
+# ================================
+# Python
+# ================================
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.log
+*.bak
+
+# ================================
+# Virtual Environment
+# ================================
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+*.env
+*.venv
+
+# ================================
+# IDEs & Editors
+# ================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+*.egg-info/
+
+# ================================
+# Jupyter Notebooks
+# ================================
+.ipynb_checkpoints/
+
+# ================================
+# Data and Models
+# ================================
+*.pkl
+*.pt
+*.h5
+*.joblib
+*.ckpt
+*.onnx
+models/
+checkpoints/
+data/*.csv
+data/*.json
+
+# ================================
+# Configuration & Secrets
+# ================================
+.env
+config.yaml
+secrets.json
+token.json
+
+# ================================
+# OS Files
+# ================================
+Thumbs.db
+Desktop.ini
+
+# ================================
+# Logs & Outputs
+# ================================
+logs/
+*.log
+*.out
+*.err
+
+# ================================
+# Testing
+# ================================
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+test-output/
+.pytest_cache/
