@@ -19,6 +19,8 @@ ENV/
 .ENV/
 *.env
 *.venv
+.env
+.env.*
 
 # ================================
 # IDEs & Editors
@@ -34,6 +36,7 @@ ENV/
 # Jupyter Notebooks
 # ================================
 .ipynb_checkpoints/
+.virtual_documents/
 
 # ================================
 # Data and Models
@@ -52,7 +55,6 @@ data/*.json
 # ================================
 # Configuration & Secrets
 # ================================
-.env
 config.yaml
 secrets.json
 token.json
