@@ -1,11 +1,24 @@
-# Core libraries
-openai>=1.97.0
-langchain>=0.2.10
+# Python >=3.11.7 required
 
-# Data handling
+# Data handling and validation
 pandas>=2.2.2
+pydantic==2.9.2
+
+# Google Gmail API
+google-api-python-client==2.176.0
+google-auth==2.31.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.2
+
+# HTML parsing
+beautifulsoup4==4.12.3  # (from bs4 import BeautifulSoup)
 
 # Jupyter notebooks 
 notebook>=7.2.2
+
+# LangChain + OpenAI
+langchain==0.2.10
+langchain-openai==0.1.17
+langchain-core==0.2.22
 
 # Testing 
