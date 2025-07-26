@@ -12,10 +12,9 @@ This app:
 import base64
 import json
 import os
-from datetime import datetime, date, time
 from dotenv import load_dotenv
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
 # Third-party
 import gradio as gr
@@ -30,10 +29,11 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
 
 # Local application
 import app.config as config
+from app.models import FlightManifest
+
 
 APP_ROOT = config.APP_ROOT
 GMAIL_TOKEN_FILE = config.GMAIL_TOKEN_FILE
@@ -43,25 +43,6 @@ TRAVELBOT_GMAIL_CLIENT_ID = config.TRAVELBOT_GMAIL_CLIENT_ID
 TRAVELBOT_GMAIL_CLIENT_SECRET = config.TRAVELBOT_GMAIL_CLIENT_SECRET 
 
 load_dotenv(dotenv_path=Path.home() / ".env")
-
-# Data model for flight parser
-class Passenger(BaseModel):
-    first_name: str
-    last_name: str
-
-class FlightDetails(BaseModel):
-    flight_number: str
-    airline_name: str
-    departure_date: Optional[date] = None
-    departure_time: Optional[time] = None
-    arrival_date: Optional[datetime] = None
-    arrival_time: Optional[str] = None
-    origin: str
-    destination: str
-    passengers: List[Passenger]
-
-class FlightManifest(BaseModel):
-    flights: List[FlightDetails]
     
 flight_parser = PydanticOutputParser(pydantic_object=FlightManifest)
 
