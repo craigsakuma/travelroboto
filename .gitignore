@@ -59,12 +59,14 @@ config.yaml
 secrets.json
 token.json
 credentials.json
+credentials/
 
 # ================================
 # OS Files
 # ================================
 Thumbs.db
 Desktop.ini
+*.db
 
 # ================================
 # Logs & Outputs
