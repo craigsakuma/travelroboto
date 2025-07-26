@@ -18,11 +18,7 @@ from typing import Any, Dict, Literal, Optional
 
 # Third-party
 import gradio as gr
-from bs4 import BeautifulSoup  
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build, Resource
-from google.auth.transport.requests import Request
+
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate
@@ -32,180 +28,18 @@ from langchain_openai import ChatOpenAI
 
 # Local application
 import app.config as config
-from app.models import FlightManifest
+import app.models as models
+from app.services.gmail_service import (
+    extract_gmail_as_json,
+    get_gmail_service,
+    get_latest_email_id,
+)
 
-
-APP_ROOT = config.APP_ROOT
-GMAIL_TOKEN_FILE = config.GMAIL_TOKEN_FILE
-SCOPES = config.SCOPES
 TEST_DATA_DIR = config.TEST_DATA_DIR
-TRAVELBOT_GMAIL_CLIENT_ID = config.TRAVELBOT_GMAIL_CLIENT_ID 
-TRAVELBOT_GMAIL_CLIENT_SECRET = config.TRAVELBOT_GMAIL_CLIENT_SECRET 
 
 load_dotenv(dotenv_path=Path.home() / ".env")
     
-flight_parser = PydanticOutputParser(pydantic_object=FlightManifest)
-
-def get_gmail_service() -> Resource:
-    """
-    Create and return an authenticated Gmail API service instance.
-
-    This function handles authentication with the Gmail API using OAuth 2.0. It first checks
-    for saved credentials in a local `token.json` file. If valid credentials are found, they
-    are used directly. If not, the function initiates an OAuth 2.0 flow to authenticate
-    the user and generates new credentials using client information stored in environment
-    variables:
-        - TRAVELBOT_GMAIL_CLIENT_ID
-        - TRAVELBOT_GMAIL_CLIENT_SECRET
-
-    The credentials are then saved to `token.json` for reuse in future runs.
-
-    Returns:
-        googleapiclient.discovery.Resource:
-            An authorized Gmail API service instance for making Gmail API calls.
-
-    Raises:
-        google.auth.exceptions.GoogleAuthError: If authentication fails or credentials
-            cannot be refreshed.
-        FileNotFoundError: If `token.json` is missing and OAuth flow cannot retrieve credentials.
-    """
-    creds: Credentials = None
-    # Load saved credentials if available
-    if GMAIL_TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(
-            GMAIL_TOKEN_FILE, SCOPES)
-
-    # If no valid credentials, run OAuth flow
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            # Get credentials from environment variables
-            client_config = {
-                "installed": {
-                    "client_id": TRAVELBOT_GMAIL_CLIENT_ID,
-                    "client_secret": TRAVELBOT_GMAIL_CLIENT_SECRET,
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": ["http://localhost"]
-                }
-            }
-            flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Save the credentials for next run
-        with open(GMAIL_TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
-
-    return build('gmail', 'v1', credentials=creds)
-
-def get_latest_email_id(client: Optional[Resource] = None) -> Optional[str]:
-    """
-    Retrieve the message ID of the most recent email from the user's Gmail inbox.
-
-    This function uses the Gmail API to fetch the most recent email for the 
-    authenticated user. If a Gmail API client is not provided, one will be created 
-    using `get_gmail_service()`.
-
-    Args:
-        client (Optional[googleapiclient.discovery.Resource]): 
-            An authenticated Gmail API client. If not provided, a new client 
-            will be created internally.
-
-    Returns:
-        Optional[str]: 
-            The message ID of the most recent email if available, otherwise `None`.
-
-    Raises:
-        googleapiclient.errors.HttpError: 
-            If the Gmail API request fails.# create gmail client if not provided
-    """
-    # create gmail client if not provided
-    if not client:
-        client = get_gmail_service()
-    # Get list of messages
-    results = client.users().messages().list(userId='me', maxResults=1).execute()
-    messages = results.get('messages', [])
-
-    if not messages:
-        print("No messages found.")
-        return
-
-    # Get the message details
-    msg_id = messages[0]['id']
-    return msg_id
-
-def extract_gmail_as_json(service: Resource, message_id: str) -> Dict[str, Optional[str]]:
-    """
-    Extract email metadata and body content from the Gmail API and return it as JSON-like data.
-
-    This function retrieves an email message by its ID using the Gmail API, 
-    extracts key metadata fields (From, To, Date, Subject, Message ID), 
-    and extracts the message body as plain text. If only HTML content 
-    is available, it is converted to plain text using BeautifulSoup.
-
-    Args:
-        service (googleapiclient.discovery.Resource):
-            An authenticated Gmail API service client.
-        message_id (str):
-            The unique Gmail message ID of the email to retrieve.
-
-    Returns:
-        Dict[str, Optional[str]]:
-            A dictionary containing the email metadata and body content:
-            {
-                "from": str or None,
-                "to": str or None,
-                "date": str or None,
-                "subject": str or None,
-                "message_id": str,
-                "body": str or None
-            }
-
-    Raises:
-        googleapiclient.errors.HttpError:
-            If the Gmail API request fails.
-
-    Example:
-        >>> service = get_gmail_service()
-        >>> email_data = extract_email_as_json(service, "17c6932b2b4f1a2c")
-        >>> print(email_data["subject"])
-        'Your Flight Itinerary'
-    """
-    msg: Dict[str, Any] = service.users().messages().get(userId='me', id=message_id, format='full').execute()
-
-    payload = msg.get("payload", {})
-    headers = payload.get("headers", [])
-
-    def get_header(name):
-        return next((h['value'] for h in headers if h['name'].lower() == name.lower()), None)
-
-    # Extract headers
-    email_data = {
-        "from": get_header("From"),
-        "to": get_header("To"),
-        "date": get_header("Date"),
-        "subject": get_header("Subject"),
-        "message_id": message_id,
-        "body": None  # populated below
-    }
-
-    # Extract body (prefer text/plain over text/html)
-    def extract_body(payload):
-        if payload.get("mimeType") == "text/plain":
-            return base64.urlsafe_b64decode(payload["body"].get("data", "")).decode("utf-8", errors="ignore")
-        elif payload.get("mimeType") == "text/html":
-            html = base64.urlsafe_b64decode(payload["body"].get("data", "")).decode("utf-8", errors="ignore")
-            return BeautifulSoup(html, "html.parser").get_text()
-        elif "parts" in payload:
-            for part in payload["parts"]:
-                body = extract_body(part)
-                if body:
-                    return body
-        return None
-
-    email_data["body"] = extract_body(payload)
-    return email_data
+flight_parser = PydanticOutputParser(pydantic_object=models.FlightManifest)
 
 # Extract flight info from most recent gmail
 msg_id = get_latest_email_id()
