@@ -8,6 +8,7 @@ This app:
 - Provides a root health-check endpoint
 """
 
+# Standard library
 import base64
 import json
 import os
@@ -16,6 +17,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
+# Third-party
 import gradio as gr
 from bs4 import BeautifulSoup  
 from google.oauth2.credentials import Credentials
@@ -30,10 +32,17 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-load_dotenv(dotenv_path=Path.home() / ".env")
+# Local application
+import app.config as config
 
-APP_ROOT = Path(__name__).resolve().parent.parent
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+APP_ROOT = config.APP_ROOT
+GMAIL_TOKEN_FILE = config.GMAIL_TOKEN_FILE
+SCOPES = config.SCOPES
+TEST_DATA_DIR = config.TEST_DATA_DIR
+TRAVELBOT_GMAIL_CLIENT_ID = config.TRAVELBOT_GMAIL_CLIENT_ID 
+TRAVELBOT_GMAIL_CLIENT_SECRET = config.TRAVELBOT_GMAIL_CLIENT_SECRET 
+
+load_dotenv(dotenv_path=Path.home() / ".env")
 
 # Data model for flight parser
 class Passenger(BaseModel):
@@ -81,9 +90,9 @@ def get_gmail_service() -> Resource:
     """
     creds: Credentials = None
     # Load saved credentials if available
-    if (APP_ROOT / 'credentials/token.json').exists():
+    if GMAIL_TOKEN_FILE.exists():
         creds = Credentials.from_authorized_user_file(
-            APP_ROOT / 'credentials/token.json', SCOPES)
+            GMAIL_TOKEN_FILE, SCOPES)
 
     # If no valid credentials, run OAuth flow
     if not creds or not creds.valid:
@@ -93,8 +102,8 @@ def get_gmail_service() -> Resource:
             # Get credentials from environment variables
             client_config = {
                 "installed": {
-                    "client_id": os.getenv("TRAVELBOT_GMAIL_CLIENT_ID"),
-                    "client_secret": os.getenv("TRAVELBOT_GMAIL_CLIENT_SECRET"),
+                    "client_id": TRAVELBOT_GMAIL_CLIENT_ID,
+                    "client_secret": TRAVELBOT_GMAIL_CLIENT_SECRET,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": ["http://localhost"]
@@ -104,7 +113,7 @@ def get_gmail_service() -> Resource:
             creds = flow.run_local_server(port=0)
 
         # Save the credentials for next run
-        with open(APP_ROOT / 'credentials/token.json', 'w') as token:
+        with open(GMAIL_TOKEN_FILE, 'w') as token:
             token.write(creds.to_json())
 
     return build('gmail', 'v1', credentials=creds)
@@ -260,7 +269,7 @@ flight_response = flight_chain.invoke(flight_chainparams)
 flight_response.dict()
 
 # Read sample itinerary
-itinerary_path = APP_ROOT / "tests" / "data" / "itinerary.txt"
+itinerary_path = TEST_DATA_DIR / "itinerary.txt"
 itinerary_txt = itinerary_path.read_text()
 
 # Create system prompt that uses CAG to insert reference info
