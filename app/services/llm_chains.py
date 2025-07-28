@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+# from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 
@@ -119,40 +119,16 @@ Here is a travel itinerary for the group vacation. Reference information from th
 Use a polite and concise tone when responding. Format the responses so it is intuitive and easy for users to read from a text messaging app.  Organize the information in an easy to read format (e.g., use bulllet points, format as outlines, include url links, format data in tables when appropriate.)
 ```{itinerary_txt}```
 """
-# Create chat response 
-def ask_question(question):
-    response = question_chain.predict(question=question)
-    raw_history = question_chain.memory.load_memory_variables({})["chat_history"]
-    formatted_history = format_history(raw_history)
-    return formatted_history, ""
-
-# Converts instances of messages into single str for displaying
-def format_history(messages):
-    """
-    Converts ConversationBufferMemory messages into a formatted SMS-style string.
-    Example output:
-    You: Hello
-    Bot: Hi there!
-    You: What's the weather?
-    Bot: It's sunny and 75°F.
-    """
-    lines = []
-    for msg in messages:
-        if isinstance(msg, HumanMessage):
-            lines.append(f"You: {msg.content}")
-        elif isinstance(msg, AIMessage):
-            lines.append(f"TravelBot: {msg.content}\n----------")
-        elif isinstance(msg, SystemMessage):
-            # optional: include system messages if desired
-            pass
-        else:
-            lines.append(f"{msg.type.capitalize()}: {msg.content}")
-    return "\n".join(lines)
 
 def clear_memory():
-    """Clear the chatbot memory."""
-    memory.clear()
-    return "Chat memory cleared. Starting a new conversation!",""
+    """
+    Clears chatbot conversation memory.
+    Returns:
+        str: confirmation message
+        str: clears input box in UI
+    """
+    question_chain.memory.clear()
+    return "Chat memory cleared. Starting a new conversation!", ""
 
 # --- Memory for conversation ---
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)

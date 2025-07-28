@@ -8,11 +8,11 @@ This app:
 """
 
 # Standard library
-import base64
-import json
-import os
-from pathlib import Path
-from typing import Any, Dict, Literal, Optional
+# import base64
+# import json
+# import os
+# from pathlib import Path
+# from typing import Any, Dict, Literal, Optional
 
 # Third-party
 import gradio as gr
@@ -20,16 +20,13 @@ from dotenv import load_dotenv
 
 # Local application
 import app.config as config
-import app.models as models
-from app.services.llm_chains import (
-    question_chain,
-    ask_question,
-    clear_memory
-)
+from app.services.llm_chains import clear_memory, question_chain
+from app.utils.chat_helpers import ask_question
 
 TEST_DATA_DIR = config.TEST_DATA_DIR
+APP_ROOT = config.APP_ROOT
 
-load_dotenv(dotenv_path=Path.home() / ".env")
+load_dotenv(APP_ROOT / ".env")
 
 # --- Gradio Interface ---
 with gr.Blocks() as demo:
