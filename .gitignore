@@ -26,6 +26,7 @@ ENV/
 # IDEs & Editors
 # ================================
 .vscode/
+.virtual_documents/
 .idea/
 *.swp
 *.swo
