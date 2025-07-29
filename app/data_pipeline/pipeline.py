@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 
 #Local application
 import app.config as config
-import app.models as models
+import app.schemas as schemas
 from app.data_pipeline.extract.gmail_extractor import (
     extract_gmail_as_json,      
     get_gmail_service, 
@@ -27,7 +27,7 @@ load_dotenv(dotenv_path=config.APP_ROOT.parent / ".env")
 client = ChatOpenAI(model="gpt-4o-mini")
 
 # --- Flight manifest parser ---
-flight_parser = PydanticOutputParser(pydantic_object=models.FlightManifest)
+flight_parser = PydanticOutputParser(pydantic_object=schemas.flight_manifest.FlightManifest)
 
 # --- Extract flight info from most recent Gmail ---
 msg_id = get_latest_email_id()
