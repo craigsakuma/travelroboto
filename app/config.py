@@ -36,7 +36,7 @@ TEST_DATA_DIR = APP_ROOT / "tests" / "data"
 # -------------------------------------------------------------------
 # Database
 # -------------------------------------------------------------------
-# DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{APP_ROOT / 'chatbot.db'}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{APP_ROOT / 'db' / 'travel.db'}")
 
 # -------------------------------------------------------------------
 # Constants
