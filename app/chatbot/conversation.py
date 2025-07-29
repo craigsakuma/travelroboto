@@ -1,9 +1,25 @@
 """
-Helper functions for chat history formatting and memory clearing.
+Utility functions for managing chatbot conversation state and formatting.
+
+This module provides helper functions to:
+- Format conversation history into a user-friendly SMS-style display suitable for UI components.
+- Generate chatbot responses using the configured LangChain conversation chain (`question_chain`),
+  while updating and retrieving chat memory.
+
+Functions:
+    format_history(messages):
+        Converts a list of LangChain message objects (HumanMessage, AIMessage, SystemMessage)
+        into a readable, SMS-style conversation string.
+
+    ask_question(question):
+        Sends a question to the chatbot, updates conversation memory,
+        and returns the formatted chat history along with an empty string
+        (used to clear text input fields in the UI).
 """
 
+
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from app.services.llm_chains import question_chain
+from app.chatbot.llm_chains import question_chain
 
 def format_history(messages):
     """

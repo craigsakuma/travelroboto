@@ -3,8 +3,8 @@
 Main entry point for the Travel Itinerary SMS Chatbot API.
 
 This app:
-- Launches the Gradio UI
-- Connects to LLM chains
+- Launches the Gradio web UI for chatbot
+- SMS interface coming soon...
 """
 # Standard library
 import os
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 # Local application
 import app.config as config
-from app.interfaces.web_ui import launch_web_ui
+from app.interfaces.chat_web_ui import launch_web_ui
 
 load_dotenv(config.APP_ROOT / ".env")
 

@@ -2,8 +2,8 @@
 Gradio Web UI for TravelBot
 """
 import gradio as gr
-from app.services.llm_chains import clear_memory
-from app.utils.chat_helpers import ask_question
+from app.chatbot.llm_chains import clear_memory
+from app.chatbot.conversation import ask_question
 
 def launch_web_ui(share: bool = True):
     """Launch the Gradio web interface for TravelBot."""
