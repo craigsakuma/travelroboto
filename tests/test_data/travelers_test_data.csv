@@ -1,0 +1,12 @@
+traveler_id,first_name,last_name,email,phone_number,street_address,city,state,effective_from,is_active,created_at,last_updated_at
+T1,Avi,Makadia,avi.makadia@example.com,555-1000,100 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T2,Beena,Hudka,beena.hudka@example.com,555-1001,101 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T3,Manisha,Radadia,manisha.radadia@example.com,555-1002,102 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T4,Kiran,Hudka,kiran.hudka@example.com,555-1003,103 Main St,San Francisco,CA,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T5,Arti,Bhimani,arti.bhimani@example.com,555-1004,104 Main St,Los Angeles,CA,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T6,Craig,Sakuma,craig.sakuma@example.com,555-1005,105 Main St,San Francisco,CA,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T7,Utpal,Hudka,utpal.hudka@example.com,555-1006,106 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T8,Rajul,Radadia,rajul.radadia@example.com,555-1007,107 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T9,Anushka,Radadia,anushka.radadia@example.com,555-1008,108 Main St,Princeton,NJ,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T10,Jaiden,Estime,jaiden.estime@example.com,555-1009,109 Main St,Los Angeles,CA,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+T11,Devin,Estime,devin.estime@example.com,555-1010,110 Main St,Los Angeles,CA,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00

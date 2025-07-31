@@ -1,0 +1,6 @@
+airport_id,iata_code,name,street_address,city,state,country
+A1,LAX,Los Angeles Intl,Los Angeles Intl Road,Los Angeles,CA,USA
+A2,SFO,San Francisco Intl,San Francisco Intl Road,San Francisco,CA,USA
+A3,EWR,Newark Liberty Intl,Newark Liberty Intl Road,Newark,NJ,USA
+A4,YYC,Calgary Intl,Calgary Intl Road,Calgary,AB,Canada
+A5,HNL,Honolulu Intl,Honolulu Intl Road,Honolulu,HI,USA

@@ -1,0 +1,21 @@
+event_id,trip_id,name,description,category,date,start_time,end_time,duration_minutes,street_address,city,state,url,reservation_required,effective_from,is_active,created_at,last_updated_at
+E1,TRIP1,Lake Louise Hike,Lake Louise Hike experience,Activity,2025-08-04,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E2,TRIP1,Johnston Canyon Hike,Johnston Canyon Hike experience,Activity,2025-08-05,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E3,TRIP1,Moraine Lake Canoe,Moraine Lake Canoe experience,Activity,2025-08-06,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E4,TRIP1,Sulphur Mountain Gondola,Sulphur Mountain Gondola experience,Activity,2025-08-07,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E5,TRIP1,Banff Upper Hot Springs,Banff Upper Hot Springs experience,Activity,2025-08-08,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E6,TRIP1,Peyto Lake Overlook,Peyto Lake Overlook experience,Activity,2025-08-09,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E7,TRIP1,Icefields Parkway Scenic Drive,Icefields Parkway Scenic Drive experience,Activity,2025-08-10,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E8,TRIP1,Banff Wildlife Tour,Banff Wildlife Tour experience,Activity,2025-08-01,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E9,TRIP1,Cave and Basin Tour,Cave and Basin Tour experience,Activity,2025-08-02,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E10,TRIP1,Bow Falls Walk,Bow Falls Walk experience,Activity,2025-08-03,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E11,TRIP1,Lake Minnewanka Cruise,Lake Minnewanka Cruise experience,Activity,2025-08-04,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E12,TRIP1,Horseback Riding Tour,Horseback Riding Tour experience,Activity,2025-08-05,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E13,TRIP1,Yoho National Park Visit,Yoho National Park Visit experience,Activity,2025-08-06,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E14,TRIP1,Takakkaw Falls Hike,Takakkaw Falls Hike experience,Activity,2025-08-07,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E15,TRIP1,Emerald Lake Canoe,Emerald Lake Canoe experience,Activity,2025-08-08,09:00,12:00,180,Various,Banff,AB,https://banff.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E16,TRIP2,Waikiki Beach Surfing,Waikiki Beach Surfing experience,Activity,2025-09-10,09:00,12:00,180,Various,Honolulu,HI,https://honolulu.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E17,TRIP2,Diamond Head Hike,Diamond Head Hike experience,Activity,2025-09-11,09:00,12:00,180,Various,Honolulu,HI,https://honolulu.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E18,TRIP2,Pearl Harbor Tour,Pearl Harbor Tour experience,Activity,2025-09-12,09:00,12:00,180,Various,Honolulu,HI,https://honolulu.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E19,TRIP2,Snorkeling at Hanauma Bay,Snorkeling at Hanauma Bay experience,Activity,2025-09-01,09:00,12:00,180,Various,Honolulu,HI,https://honolulu.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
+E20,TRIP2,Luau Dinner,Luau Dinner experience,Activity,2025-09-02,09:00,12:00,180,Various,Honolulu,HI,https://honolulu.com,0,2025-01-01T00:00:00,1,2025-01-01T00:00:00,2025-01-01T00:00:00
