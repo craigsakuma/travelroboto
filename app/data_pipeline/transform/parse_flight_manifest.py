@@ -27,7 +27,7 @@ from app.data_pipeline.extract.gmail_extractor import (
 )
 
 # --- Load environment variables ---
-load_dotenv(dotenv_path=config.APP_ROOT.parent.parent / ".env")
+load_dotenv(dotenv_path=config.BASE_DIR / ".env")
 
 # --- Model client ---
 client = ChatOpenAI(model="gpt-4o-mini")

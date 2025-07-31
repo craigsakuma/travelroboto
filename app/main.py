@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 import app.config as config
 from app.interfaces.chat_web_ui import launch_web_ui
 
-load_dotenv(config.APP_ROOT / ".env")
+load_dotenv(config.BASE_DIR / ".env")
 
 if __name__ == "__main__":
     mode = os.getenv("APP_MODE", "web")  # default to web interface

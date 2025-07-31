@@ -13,9 +13,10 @@ from pathlib import Path
 load_dotenv()
 
 # -------------------------------------------------------------------
-# App root directory (e.g., /path/to/chatbot_project)
+# App base and app directories (e.g., /path/to/chatbot_project)
 # -------------------------------------------------------------------
-APP_ROOT = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
+APP_ROOT = BASE_DIR / "app"
 
 # -------------------------------------------------------------------
 # API Keys and Secrets
@@ -29,14 +30,14 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 # -------------------------------------------------------------------
 # Paths for Credentials and Data
 # -------------------------------------------------------------------
-CREDENTIALS_DIR = APP_ROOT / "credentials"
+CREDENTIALS_DIR = BASE_DIR / "credentials"
 GMAIL_TOKEN_FILE = CREDENTIALS_DIR / "token.json"
-TEST_DATA_DIR = APP_ROOT / "tests" / "data"
+TEST_DATA_DIR = BASE_DIR / "tests" / "sample_data"
 
 # -------------------------------------------------------------------
 # Database
 # -------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{APP_ROOT / 'data' / 'travel.db'}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'travel.db'}")
 
 # -------------------------------------------------------------------
 # Constants
