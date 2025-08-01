@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 # Local application
 import app.config as config
-from app.interfaces.chat_web_ui import launch_web_ui
+from app.interfaces.legacy_gradio_web_ui import launch_web_ui
 
 load_dotenv(config.BASE_DIR / ".env")
 
