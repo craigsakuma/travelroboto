@@ -32,7 +32,7 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 # -------------------------------------------------------------------
 CREDENTIALS_DIR = BASE_DIR / "credentials"
 GMAIL_TOKEN_FILE = CREDENTIALS_DIR / "token.json"
-TEST_DATA_DIR = BASE_DIR / "tests" / "sample_data"
+TEST_DATA_DIR = BASE_DIR / "tests" / "test_data"
 
 # -------------------------------------------------------------------
 # Database

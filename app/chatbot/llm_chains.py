@@ -27,7 +27,7 @@ load_dotenv(dotenv_path=config.BASE_DIR / ".env")
 client = ChatOpenAI(model="gpt-4o-mini")
 
 # --- Load itinerary text ---
-itinerary_path = config.TEST_DATA_DIR / "sample_itinerary.txt"
+itinerary_path = config.TEST_DATA_DIR / "test_itinerary.txt"
 itinerary_txt = itinerary_path.read_text()
 
 # --- System prompt for chat ---
