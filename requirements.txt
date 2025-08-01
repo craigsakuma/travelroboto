@@ -24,3 +24,9 @@ langchain-core==0.2.22
 # Testing
 pytest>=8.0.0
 pytest-mock>=3.12.0
+
+# Website
+fastapi
+uvicorn
+jinja2
+python-multipart

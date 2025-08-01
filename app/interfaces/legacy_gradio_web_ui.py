@@ -3,7 +3,7 @@ Gradio Web UI for TravelBot
 """
 import gradio as gr
 from app.chatbot.llm_chains import clear_memory
-from app.chatbot.conversation import ask_question
+from app.chatbot.conversation import get_chat_response
 
 def launch_web_ui(share: bool = True):
     """Launch the Gradio web interface for TravelBot."""
@@ -27,12 +27,12 @@ def launch_web_ui(share: bool = True):
             clear_btn = gr.Button("Clear Memory")
 
         send_btn.click(
-            ask_question,
+            get_chat_response,
             inputs=user_input,
             outputs=chat_display
         )
         user_input.submit(
-            ask_question,
+            get_chat_response,
             inputs=user_input,
             outputs=[chat_display, user_input]
         )

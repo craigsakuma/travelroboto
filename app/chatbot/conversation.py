@@ -41,7 +41,7 @@ def format_history(messages):
             lines.append(f"{msg.type.capitalize()}: {msg.content}")
     return "\n".join(lines)
 
-def ask_question(question):
+def get_chat_response(question):
     """
     Generates a chatbot response and formats chat history.
     Returns:
