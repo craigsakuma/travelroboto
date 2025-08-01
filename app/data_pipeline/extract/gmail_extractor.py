@@ -18,14 +18,16 @@ Functions:
 """
 # Standard library
 import base64
+import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 # Third-party
 from bs4 import BeautifulSoup
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build, Resource
+from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 
 # Local application
@@ -72,28 +74,29 @@ def get_gmail_service() -> Resource:
     return build("gmail", "v1", credentials=creds)
 
 
-def get_latest_email_id(client: Optional[Resource] = None) -> Optional[str]:
+def get_inbox_email_ids(client: Optional[Resource] = None, max_results: Optional[int] = 10) -> Optional[str]:
     """
-    Retrieve the message ID of the most recent email in the inbox.
+    Retrieve message IDs from the user's Gmail inbox.
 
     Args:
-        client (Optional[googleapiclient.discovery.Resource]): Gmail API client.
-            If None, one will be created internally.
+        service (object): Authorized Gmail API service instance.
+        max_results (int, optional): Maximum number of email IDs to retrieve. 
+            Defaults to 100 to limit API requests.
 
     Returns:
-        Optional[str]: Gmail message ID of the latest email, or None if no emails found.
+        list[str]: A list of message IDs from the inbox, limited to max_results.
     """
     if not client:
         client = get_gmail_service()
 
-    results = client.users().messages().list(userId="me", maxResults=1).execute()
+    results = client.users().messages().list(userId="me", maxResults=max_results).execute()
     messages = results.get("messages", [])
 
     if not messages:
         print("No messages found.")
         return None
 
-    return messages[0]["id"]
+    return [m['id'] for m in messages]
 
 
 def extract_gmail_as_json(service: Resource, message_id: str) -> Dict[str, Optional[str]]:
