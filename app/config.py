@@ -35,9 +35,14 @@ GMAIL_TOKEN_FILE = CREDENTIALS_DIR / "token.json"
 TEST_DATA_DIR = BASE_DIR / "tests" / "test_data"
 
 # -------------------------------------------------------------------
-# Database
+# Database - postgresql hosted on railway
 # -------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'travel.db'}")
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
+PG_HOST = os.getenv("PG_HOST")
+PG_PORT = os.getenv("PG_PORT")
+PG_NAME = os.getenv("PG_NAME")
+DATABASE_URL = f"postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
 
 # -------------------------------------------------------------------
 # Constants
