@@ -1,6 +1,10 @@
 """
 SQLAlchemy ORM models for travel itinerary data.
 
+Features:
+- Uses PostgreSQL-optimized schema design.
+- Slowly Changing Dimensions (SCD) and auditing fields for historical tracking
+
 Includes:
 - Travelers
 - Trips
@@ -8,12 +12,6 @@ Includes:
 - Hotels and Hotel Reservations
 - Events (e.g., tours, meals, excursions)
 - Association tables for many-to-many relationships
-- Slowly Changing Dimensions (SCD) and auditing fields for historical tracking
-
-Supports:
-- Multiple travelers sharing trips, flights, hotels, and events
-- Versioning of records when itinerary details change
-- Portability (SQLite → PostgreSQL)
 """
 
 # Standard library
@@ -24,12 +22,14 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     String,
+    Date,
     DateTime,
     Boolean,
     ForeignKey,
     Integer,
     Text,
     Table,
+    func,
     Index
 )
 from sqlalchemy.orm import relationship
@@ -51,29 +51,29 @@ def generate_uuid():
 traveler_flight = Table(
     "traveler_flight",
     Base.metadata,
-    Column("traveler_id", String, ForeignKey("travelers.traveler_id"), primary_key=True),
-    Column("flight_id", String, ForeignKey("flights.flight_id"), primary_key=True),
+    Column("traveler_id", Integer, ForeignKey("travelers.traveler_id"), primary_key=True),
+    Column("flight_id", Integer, ForeignKey("flights.flight_id"), primary_key=True),
 )
 
 traveler_event = Table(
     "traveler_event",
     Base.metadata,
-    Column("traveler_id", String, ForeignKey("travelers.traveler_id"), primary_key=True),
-    Column("event_id", String, ForeignKey("events.event_id"), primary_key=True),
+    Column("traveler_id", Integer, ForeignKey("travelers.traveler_id"), primary_key=True),
+    Column("event_id", Integer, ForeignKey("events.event_id"), primary_key=True),
 )
 
 traveler_trip = Table(
     "traveler_trip",
     Base.metadata,
-    Column("traveler_id", String, ForeignKey("travelers.traveler_id"), primary_key=True),
-    Column("trip_id", String, ForeignKey("trips.trip_id"), primary_key=True),
+    Column("traveler_id", Integer, ForeignKey("travelers.traveler_id"), primary_key=True),
+    Column("trip_id", Integer, ForeignKey("trips.trip_id"), primary_key=True),
 )
 
 traveler_hotel_reservation = Table(
     "traveler_hotel_reservation",
     Base.metadata,
-    Column("traveler_id", String, ForeignKey("travelers.traveler_id"), primary_key=True),
-    Column("hotel_reservation_id", String, ForeignKey("hotel_reservations.hotel_reservation_id"), primary_key=True)
+    Column("traveler_id", Integer, ForeignKey("travelers.traveler_id"), primary_key=True),
+    Column("hotel_reservation_id", Integer, ForeignKey("hotel_reservations.hotel_reservation_id"), primary_key=True)
 )
 
 # ---------------------------------------------------------
@@ -85,7 +85,7 @@ class Traveler(Base):
     """
     __tablename__ = "travelers"
 
-    traveler_id = Column(String, primary_key=True, default=generate_uuid)
+    traveler_id = Column(Integer, primary_key=True)
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     email = Column(String(100), nullable=True)
@@ -116,7 +116,7 @@ class Trip(Base):
     """
     __tablename__ = "trips"
 
-    trip_id = Column(String, primary_key=True, default=generate_uuid)
+    trip_id = Column(Integer, primary_key=True, default=generate_uuid)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     start_date = Column(DateTime, nullable=False)
@@ -156,7 +156,7 @@ class Flight(Base):
     confirmation_number = Column(String(50), nullable=True)
 
     # Slowly Changing Dimensions and Auditing fields
-    effective_from = Column(DateTime, default=datetime.utcnow, nullable=False)
+    effective_from = Column(DateTime(timezone=True), server_default=func.now()
     effective_to = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -182,10 +182,8 @@ class Airport(Base):
         state (str): State or province of the airport.
         country (str): Country of the airport.
     """
-
     __tablename__ = "airports"
 
-    # IATA code as primary key ensures one row per airport
     airport_id = Column(String, primary_key=True, default=generate_uuid)
     iata_code = Column(String(3), unique=True, nullable=False, index=True)
     name = Column(String(200), nullable=False)
@@ -284,3 +282,11 @@ class Event(Base):
     # Relationships
     travelers = relationship("Traveler", secondary=traveler_event, back_populates="events")
     trip = relationship("Trip", back_populates="events")
+
+
+# ---------------------------------------------------------
+# Indexes for query optimization
+# ---------------------------------------------------------
+Index("idx_trip_traveler_id", Trip.traveler_id)
+Index("idx_flight_trip_id", Flight.trip_id)
+Index("idx_traveler_email", Traveler.email)
