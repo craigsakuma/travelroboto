@@ -7,16 +7,17 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-# -------------------------------------------------------------------
-# Load environment variables from .env file (if present)
-# -------------------------------------------------------------------
-load_dotenv()
 
 # -------------------------------------------------------------------
 # App base and app directories (e.g., /path/to/chatbot_project)
 # -------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ROOT = BASE_DIR / "app"
+
+# -------------------------------------------------------------------
+# Load environment variables from .env file (if present)
+# -------------------------------------------------------------------
+load_dotenv(dotenv_path=BASE_DIR / '.env')
 
 # -------------------------------------------------------------------
 # API Keys and Secrets
@@ -39,10 +40,16 @@ TEST_DATA_DIR = BASE_DIR / "tests" / "test_data"
 # -------------------------------------------------------------------
 PG_USER = os.getenv("PG_USER")
 PG_PASSWORD = os.getenv("PG_PASSWORD")
-PG_HOST = os.getenv("PG_HOST")
 PG_PORT = os.getenv("PG_PORT")
 PG_NAME = os.getenv("PG_NAME")
-DATABASE_URL = f"postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
+
+# for public connections to db
+PG_HOST = os.getenv("PG_HOST")
+DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
+
+# for connections within Railway environment
+RAILWAY_PG_HOST =  os.getenv("RAILWAY_PG_HOST") 
+RAILWAY_DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{RAILWAY_PG_HOST}:{PG_PORT}/{PG_NAME}" # for internal use on Railway
 
 # -------------------------------------------------------------------
 # Constants
