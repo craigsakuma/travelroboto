@@ -3,6 +3,7 @@
 # Data handling and validation
 pandas>=2.2.2
 pydantic==2.9.2
+psycopg2-binary>=2.9
 
 # Google Gmail API
 google-api-python-client==2.176.0
