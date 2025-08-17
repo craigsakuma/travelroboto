@@ -11,13 +11,13 @@ from pathlib import Path
 # -------------------------------------------------------------------
 # App base and app directories (e.g., /path/to/chatbot_project)
 # -------------------------------------------------------------------
-BASE_DIR = Path().resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ROOT = BASE_DIR / "app"
 
 # -------------------------------------------------------------------
 # Load environment variables from .env file (if present)
 # -------------------------------------------------------------------
-load_dotenv(find_dotenv())
+load_dotenv(dotenv_path=BASE_DIR/".env",override=True)
 
 # -------------------------------------------------------------------
 # API Keys and Secrets
