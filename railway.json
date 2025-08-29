@@ -3,15 +3,13 @@
     "builder": "NIXPACKS",
     "nixpacksPlan": {
       "phases": {
-        "setup": {
-          "nixPkgs": ["python311"]
-        }
+        "setup": { "nixPkgs": ["python311"] }
       }
     }
   },
   "deploy": {
-    "startCommand": "uvicorn app.interfaces.fastapi_web_ui:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}",
-    "healthcheckPath": "/",
+    "startCommand": "uvicorn app.main:create_app --factory --host 0.0.0.0 --port ${PORT}",
+    "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }

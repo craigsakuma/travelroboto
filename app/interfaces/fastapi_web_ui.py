@@ -35,6 +35,10 @@ def create_app() -> FastAPI:
     async def chat_endpoint(chat_request: ChatRequest):
         response = get_chat_response(chat_request.message)
         return JSONResponse(content={"response": response})
+    
+    @router.get("/health")
+    async def health():
+        return {"status": "ok"}
 
     app.include_router(router)
     return app
