@@ -1,9 +1,19 @@
 # Python >=3.11.7 required
 
+# Core web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+jinja2>=3.1.4
+python-multipart>=0.0.9   # form parsing for uploads
+
 # Data handling and validation
 pandas>=2.2.2
-pydantic==2.9.2
-psycopg2-binary>=2.9
+pydantic>=2.9.2
+pydantic-settings>=2.4.0   # for clean .env + env var management
+psycopg2-binary>=2.9       # Postgres sync driver (for migrations, admin)
+
+# Async Postgres driver (for FastAPI services)
+asyncpg>=0.29.0
 
 # Google Gmail API
 google-api-python-client==2.176.0
@@ -12,22 +22,17 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.2
 
 # HTML parsing
-beautifulsoup4==4.12.3  # (from bs4 import BeautifulSoup)
-
-# Jupyter notebooks 
-notebook>=7.2.2
+beautifulsoup4==4.12.3
 
 # LangChain + OpenAI
 langchain==0.2.10
 langchain-openai==0.1.17
 langchain-core==0.2.22
+openai>=1.35.0
+
+# Jupyter (local dev only)
+notebook>=7.2.2
 
 # Testing
 pytest>=8.0.0
 pytest-mock>=3.12.0
-
-# Website
-fastapi
-uvicorn
-jinja2
-python-multipart
