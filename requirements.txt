@@ -33,6 +33,10 @@ openai>=1.35.0
 # Jupyter (local dev only)
 notebook>=7.2.2
 
+# Deployment & Production
+gunicorn>=21.2.0           # Optional: Use with ASGI app if not using uvicorn directly
+python-dotenv>=1.0.1       # Load .env locally during dev if needed
+
 # Testing
 pytest>=8.0.0
 pytest-mock>=3.12.0
