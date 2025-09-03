@@ -17,7 +17,7 @@ APP_ROOT = BASE_DIR / "app"
 # -------------------------------------------------------------------
 # Load environment variables from .env file (if present)
 # -------------------------------------------------------------------
-load_dotenv(dotenv_path=BASE_DIR/".env",override=True)
+load_dotenv(dotenv_path=BASE_DIR/".env",override=False)
 
 # -------------------------------------------------------------------
 # API Keys and Secrets
