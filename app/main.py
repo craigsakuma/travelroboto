@@ -4,7 +4,7 @@ App entrypoint.
 - Primary: expose create_app() for Uvicorn (--factory) in all environments.
 - Convenience: allow `python -m app.main` for local runs, honoring $PORT.
 """
-from app.web.fastapi_app import create_app
+from app.interfaces.fastapi_web_ui import create_app
 
 if __name__ == "__main__":
     import os
