@@ -12,7 +12,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 
 #Local application
-import app.config as config
+from app.config import settings
 from app.schemas.flight_manifest import FlightManifest
 from app.data_pipeline.extract.gmail_extractor import (
     extract_gmail_as_json,      
@@ -20,11 +20,8 @@ from app.data_pipeline.extract.gmail_extractor import (
     get_inbox_email_ids
 )
 
-# --- Load environment variables ---
-load_dotenv(dotenv_path=config.BASE_DIR / ".env")
-
 # --- Model client ---
-client = ChatOpenAI(model="gpt-4o-mini")
+client = ChatOpenAI(model="gpt-4o-mini", api_key=settings.openai_api_key)
 
 # --- Flight manifest parser ---
 flight_parser = PydanticOutputParser(pydantic_object=FlightManifest)

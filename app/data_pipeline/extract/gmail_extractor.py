@@ -31,7 +31,7 @@ from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 
 # Local application
-import app.config as config
+from app.config import settings
 
 
 def get_gmail_service() -> Resource:
@@ -45,9 +45,9 @@ def get_gmail_service() -> Resource:
     creds: Credentials = None
 
     # Load saved credentials if available
-    if config.GMAIL_TOKEN_FILE.exists():
+    if settings.gmail_token_file.exists():
         creds = Credentials.from_authorized_user_file(
-            config.GMAIL_TOKEN_FILE, config.SCOPES
+            settings.gmail_token_file, settings.scopes
         )
 
     # If no valid credentials, run OAuth flow
@@ -57,18 +57,18 @@ def get_gmail_service() -> Resource:
         else:
             client_config = {
                 "installed": {
-                    "client_id": config.TRAVELBOT_GMAIL_CLIENT_ID,
-                    "client_secret": config.TRAVELBOT_GMAIL_CLIENT_SECRET,
+                    "client_id": settings.travelbot_gmail_client_id,
+                    "client_secret": settings.travelbot_gmail_client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": ["http://localhost"],
                 }
             }
-            flow = InstalledAppFlow.from_client_config(client_config, config.SCOPES)
+            flow = InstalledAppFlow.from_client_config(client_config, settings.scopes)
             creds = flow.run_local_server(port=0)
 
         # Save the credentials for future use
-        with open(config.GMAIL_TOKEN_FILE, "w") as token:
+        with open(settings.gmail_token_file, "w") as token:
             token.write(creds.to_json())
 
     return build("gmail", "v1", credentials=creds)
