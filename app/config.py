@@ -1,58 +1,71 @@
 """
 Configuration settings for the TravelBot project.
-Centralizes environment variables, file paths, and constants.
+
 """
-
-import os
-from dotenv import load_dotenv, find_dotenv
+from __future__ import annotations
 from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
+BASE_DIR = Path(__file__).resolve().parent.parent  # adjust if needed
 
-# -------------------------------------------------------------------
-# App base and app directories (e.g., /path/to/chatbot_project)
-# -------------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent.parent
-APP_ROOT = BASE_DIR / "app"
+class Settings(BaseSettings):
+    # App
+    app_env: str = Field(default="development")
 
-# -------------------------------------------------------------------
-# Load environment variables from .env file (if present)
-# -------------------------------------------------------------------
-load_dotenv(dotenv_path=BASE_DIR/".env",override=True)
+    # LLM
+    openai_api_key: str | None = None
 
-# -------------------------------------------------------------------
-# API Keys and Secrets
-# -------------------------------------------------------------------
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-TRAVELBOT_GMAIL_CLIENT_ID = os.getenv("TRAVELBOT_GMAIL_CLIENT_ID", "")
-TRAVELBOT_GMAIL_CLIENT_SECRET = os.getenv("TRAVELBOT_GMAIL_CLIENT_SECRET", "")
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    # Trip context (dev shim)
+    trip_context_path: str = "tests/test_data/test_itinerary.txt"
 
-# -------------------------------------------------------------------
-# Paths for Credentials and Data
-# -------------------------------------------------------------------
-CREDENTIALS_DIR = BASE_DIR / "credentials"
-GMAIL_TOKEN_FILE = CREDENTIALS_DIR / "token.json"
-TEST_DATA_DIR = BASE_DIR / "tests" / "test_data"
+    # --- Twilio (SMS) ---
+    twilio_account_sid: str = Field(default="", description="Twilio Account SID")
+    twilio_auth_token: str = Field(default="", description="Twilio Auth Token")
 
-# -------------------------------------------------------------------
-# Database - postgresql hosted on railway
-# -------------------------------------------------------------------
-PG_USER = os.getenv("PG_USER")
-PG_PASSWORD = os.getenv("PG_PASSWORD")
-PG_PORT = os.getenv("PG_PORT")
-PG_NAME = os.getenv("PG_NAME")
+    # --- Gmail OAuth ---
+    travelbot_gmail_client_id: str = Field(default="", description="Google API client ID")
+    travelbot_gmail_client_secret: str = Field(default="", description="Google API client secret")
 
-# for public connections to db
-PG_HOST = os.getenv("PG_HOST")
-DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
+    # --- Gmail local files ---
+    credentials_dir: Path = BASE_DIR / "credentials"
+    gmail_token_file: Path = credentials_dir / "token.json"
+    scopes: list[str] = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# for connections within Railway environment
-RAILWAY_PG_HOST =  os.getenv("RAILWAY_PG_HOST") 
-RAILWAY_DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{RAILWAY_PG_HOST}:{PG_PORT}/{PG_NAME}" # for internal use on Railway
+    # Database (minimal: two URLs + a toggle)
+    database_url_external: str | None = None  # public URL for local dev
+    database_url_internal: str | None = None  # internal URL for Railway
+    use_internal_db: bool = False             # set to true on Railway
 
-# -------------------------------------------------------------------
-# Constants
-# -------------------------------------------------------------------
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    @property
+    def database_url_sync(self) -> str | None:
+        """Return the chosen sync URL (psycopg2)."""
+        if self.use_internal_db and self.database_url_internal:
+            return self.database_url_internal
+        return self.database_url_external
+
+    @property
+    def database_url_async(self) -> str | None:
+        """Return the chosen async URL (asyncpg), derived from the sync URL."""
+        url = self.database_url_sync
+        if not url:
+            return None
+        # naive but effective swap to asyncpg
+        if "+psycopg2" in url:
+            return url.replace("+psycopg2", "+asyncpg")
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://")
+        return url  # already async or custom
+        
+# Create a single importable instance
+try:
+    settings = Settings()
+except ValidationError:
+    # Keep startup resilient; fail later where the value is required.
+    settings = Settings.model_construct()
