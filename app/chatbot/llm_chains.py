@@ -66,29 +66,15 @@ Use a polite and concise tone when responding. Format the responses so it is int
 ```{itinerary_txt}```
 """
 
-def clear_memory():
-    """
-    Clears chatbot conversation memory.
-    Returns:
-        str: confirmation message
-        str: clears input box in UI
-    """
-    question_chain.memory.clear()
-    return "Chat memory cleared. Starting a new conversation!", ""
-
-# --- Memory for conversation ---
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 # --- Conversation chain ---
 question_prompt = ChatPromptTemplate.from_messages([
     ("system", "{system_instructions}"),
-    ("ai", "{chat_history}"),
     ("human", "{question}"),
 ])
 question_chain = ConversationChain(
     llm=client,
     prompt=question_prompt.partial(system_instructions=system_instructions),
     input_key="question",
-    memory=memory,
     verbose=True,
 )
