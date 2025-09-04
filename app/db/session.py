@@ -6,9 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Local application
-from app.config import DATABASE_URL
+from app.config import settings
 
-engine = create_engine(DATABASE_URL, echo=True, future=True)
+engine = create_engine(settings.database_url_internal, echo=True, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 # Dependency for FastAPI

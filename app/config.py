@@ -10,13 +10,13 @@ from pydantic import Field
 BASE_DIR = Path(__file__).resolve().parent.parent  # adjust if needed
 
 class Settings(BaseSettings):
-    # App
+    # --- App ---
     app_env: str = Field(default="development")
 
-    # LLM
+    # --- LLM ---
     openai_api_key: str | None = None
 
-    # Trip context (dev shim)
+    # --- Trip context (dev shim) ---
     trip_context_path: str = "tests/test_data/test_itinerary.txt"
 
     # --- Twilio (SMS) ---
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     gmail_token_file: Path = credentials_dir / "token.json"
     scopes: list[str] = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-    # Database (minimal: two URLs + a toggle)
+    # --- Database (minimal: two URLs + a toggle) ---
     database_url_external: str | None = None  # public URL for local dev
     database_url_internal: str | None = None  # internal URL for Railway
     use_internal_db: bool = False             # set to true on Railway

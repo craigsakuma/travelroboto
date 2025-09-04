@@ -11,9 +11,10 @@ import pandas as pd
 import random
 import io, zipfile
 
-from app.config import TEST_DATA_DIR
+from app.config import BASE_DIR
 
 # Ensure the directory exists
+TEST_DATA_DIR = BASE_DIR/tests/test_data
 TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # -------------------

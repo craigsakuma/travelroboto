@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 # Local application imports
-from app.config import RAILWAY_DATABASE_URL
+from app.config import settings
 from app.db.base import Base
 
 def init_db() -> None:
@@ -23,7 +23,7 @@ def init_db() -> None:
     Uses SQLAlchemy Base.metadata to generate all tables defined in models.
     """
     try:
-        engine = create_engine(RAILWAY_DATABASE_URL, echo=True, future=True)
+        engine = create_engine(settings.database_url_internal, echo=True, future=True)
         Base.metadata.create_all(bind=engine)
         print("Database tables created successfully.")
     except SQLAlchemyError as e:
