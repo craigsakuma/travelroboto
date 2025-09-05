@@ -4,9 +4,10 @@ LLM Chain factory for TravelBot.
 
 from pathlib import Path
 
-from langchain.chains import ConversationChain
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import Runnable
 
 from app.config import settings
 
@@ -37,9 +38,18 @@ def get_prompt(system_prompt: str) -> ChatPromptTemplate:
         ]
     )
 
-question_chain = ConversationChain(
-    llm=get_llm(),
-    prompt=get_prompt("Placeholder for system prompt."),
-    input_key="question",
-    verbose=True,
-)
+def build_question_chain(
+    *,
+    system_prompt: str,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.2,
+    run_name: str = "travelbot_qna_v1",
+    timeout: int | float = 30,
+    max_retries: int = 2,
+) -> Runnable[dict, str]:
+
+    prompt = get_prompt(system_prompt)
+    llm = get_llm(model=model, temperature=temperature, timeout=timeout, max_retries=max_retries)
+    chain: Runnable[dict, str] = prompt | llm | StrOutputParser()
+    
+    return chain.with_config({"run_name": run_name})
