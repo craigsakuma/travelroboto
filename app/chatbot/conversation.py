@@ -14,6 +14,19 @@ from app.chatbot.llm_chains import question_chain
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a chatbot for a travel app that answers questions about the travel itinerary. "
+    "You have a trip itinerary for a family vacation to Banff. The following text in triple "
+    "quotes contains the travel itinerary for all the family members that are traveling. "
+    "Reference the trip itinerary for information to answer questions. If there isn't enough "
+    "detail in the question, ask for additional information. If the information doesn't exist "
+    "in the itinerary, let the user know.\n\n"
+    "Format responses for a text messaging UI: be concise, use bullet points or tables where helpful, "
+    "and include URLs when relevant.\n\n"
+    "Trip itinerary:\n```{trip_context}```"
+)
+
+trip_context = Path(settings.trip_context_path).read_text(encoding="utf-8")
 
 def get_chat_response(question: str) -> Tuple[str, str]:
     """
