@@ -7,9 +7,10 @@ for lightweight observability.
 """
 
 import logging
-from typing import Tuple
+from pathlib import Path
+from typing import Optonal, Tuple
 
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+from app.config import settings
 from app.chatbot.llm_chains import build_question_chain
 
 logger = logging.getLogger(__name__)
@@ -26,14 +27,20 @@ DEFAULT_SYSTEM_PROMPT = (
     "Trip itinerary:\n```{trip_context}```"
 )
 
-trip_context = Path(settings.trip_context_path).read_text(encoding="utf-8")
+def load_trip_context(path_str: Optional[str] = None) -> str:
+    p = Path(path_str)
+    logger.debug(f"Loading trip context from {p}")
+
+    return p.read_text(encoding="utf-8"))
+    
 
 def get_chat_response(
         message: str,
         *,
         model: str = "gpt-4o-mini", 
         temperature: float = 0.2,
-        system_prompt: str = DEFAULT_SYSTEM_PROMPT
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+        trip_context_path: Optional[str] = None    
 ) -> Tuple[str, str]:
     
     preview = (message or "").strip().replace("\n", " ")
@@ -41,13 +48,15 @@ def get_chat_response(
         preview = preview[:77] + '...'
     logger.info(f"Generating chat response (preview={preview})")
 
+    context = load_trip_context(trip_context_path)
+
     chain = build_question_chain(
         system_prompt=system_prompt,
         model=model,
         temperature=temperature
     )
-    response = chain.predict(question=question)
-    return f"You: {message}\nTravelbot: {response}\n----------", ""
+    response = chain.invoke({"question": message, "context": context})
+    return response
 
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
 # class ChatHistoryRepo(Protocol):
