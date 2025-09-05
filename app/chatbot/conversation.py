@@ -27,6 +27,10 @@ DEFAULT_SYSTEM_PROMPT = (
     "Trip itinerary:\n```{trip_context}```"
 )
 
+def _resolve_trip_path(override: Optional[str]) -> Optional[str]:
+    return override or getattr(settings, "trip_context_path", None)
+
+
 def load_trip_context(path_str: Optional[str] = None) -> str:
     p = Path(path_str)
     logger.debug(f"Loading trip context from {p}")
@@ -48,7 +52,8 @@ def get_chat_response(
         preview = preview[:77] + '...'
     logger.info(f"Generating chat response (preview={preview})")
 
-    context = load_trip_context(trip_context_path)
+    resolved_path = _resolve_trip_path(trip_context_path)
+    context = load_trip_context(resolved_path)
 
     chain = build_question_chain(
         system_prompt=system_prompt,
