@@ -1,28 +1,40 @@
 """
-Utility functions for managing chatbot conversation state and formatting.
+Conversation service for TravelBot.
 
-This module provides helper functions to:
-- Generate chatbot responses using the configured LangChain conversation chain (`question_chain`),
-
-
-Functions:
-    get_chat_response(question):
-        Sends a question to the chatbot, and returns the formatted chat
-        question and response along with an empty string (used to clear text
-        input fields in the UI).
+Provides a synchronous entry point for generating chatbot responses
+using the configured LangChain chain. Includes a module-level logger
+for lightweight observability.
 """
 
+import logging
+from typing import Tuple
 
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from app.chatbot.llm_chains import question_chain
 
-def get_chat_response(question):
+logger = logging.getLogger(__name__)
+
+
+def get_chat_response(question: str) -> Tuple[str, str]:
     """
-    Generates a chatbot response and formats chat history.
+    Generates a chatbot response using the configured LangChain conversation chain.
+
+    Args:
+        question (str): The user's question text.
+
     Returns:
-        formatted_history (str): SMS-style conversation
-        "" (str): clears input box in UI
+        tuple[str, str]: A tuple of:
+            - formatted_history: Minimal SMS-style one-turn transcript
+            - ""               : Placeholder to clear input boxes in UI flows
+
+    Notes:
+        - Logging is intentionally light and avoids printing sensitive data.
     """
+    preview = (question or "").strip().replace("\n", " ")
+    if len(preview) > 80:
+        preview = preview[:77] + '...'
+    logger.info(f"Generating chat response (preview={preview})")
+
     response = question_chain.predict(question=question)
     return f"You: {question}\nTravelbot: {response}\n----------", ""
 
