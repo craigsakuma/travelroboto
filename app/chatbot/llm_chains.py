@@ -2,7 +2,8 @@
 LLM Chain factory for TravelBot.
 """
 
-from pathlib import Path
+from __future__ import annotations
+import logging
 
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -10,6 +11,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def get_llm(
@@ -19,7 +22,13 @@ def get_llm(
     timeout: int | float = 30,
     max_retries: int = 2,
 ) -> ChatOpenAI:
-    
+
+    msg = (
+        f"Creating ChatOpenAI client: model={model}, temp={temperature}, "
+        f"timeout={timeout}, retries={max_retries}"
+    )
+    logger.debug(msg)
+
     return ChatOpenAI(
         model=model,
         temperature=temperature,
@@ -30,7 +39,8 @@ def get_llm(
 
 def get_prompt(system_prompt: str) -> ChatPromptTemplate:
     sys_prompt = system_prompt.strip()  # normalize whitespace once
-
+    
+    logger.debug("Building ChatPromptTemplate")
     return ChatPromptTemplate.from_messages(
         [
             ("system", sys_prompt),
@@ -48,8 +58,9 @@ def build_question_chain(
     max_retries: int = 2,
 ) -> Runnable[dict, str]:
 
+    logger.debug("Building question chain (model={model}, temp={temperature})", model, temperature)
     prompt = get_prompt(system_prompt)
     llm = get_llm(model=model, temperature=temperature, timeout=timeout, max_retries=max_retries)
     chain: Runnable[dict, str] = prompt | llm | StrOutputParser()
-    
+
     return chain.with_config({"run_name": run_name})
