@@ -4,6 +4,7 @@ LLM Chain factory for TravelBot.
 
 from __future__ import annotations
 import logging
+import math
 
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -22,6 +23,18 @@ def get_llm(
     timeout: int | float = 30,
     max_retries: int = 2,
 ) -> ChatOpenAI:
+    
+    if not settings.openai_api_key:
+        logger.error("OPENAI_API_KEY is not set")
+        raise RuntimeError("OPENAI_API_KEY is not set. Configure it in Railway or your .env.")
+
+    # validate temperature early (shared logic can also live here)
+    if not (
+        isinstance(temperature, (int, float))
+        and math.isfinite(temperature)
+        and 0.0 <= temperature <= 2.0
+    ):
+        raise ValueError("temperature must be a finite number between 0.0 and 2.0")
 
     msg = (
         f"Creating ChatOpenAI client: model={model}, temp={temperature}, "
@@ -38,6 +51,8 @@ def get_llm(
     )
 
 def get_prompt(system_prompt: str) -> ChatPromptTemplate:
+    if not isinstance(system_prompt, str) or not system_prompt.strip():
+        raise ValueError("system_prompt must not be empty")
     sys_prompt = system_prompt.strip()  # normalize whitespace once
     
     logger.debug("Building ChatPromptTemplate")
