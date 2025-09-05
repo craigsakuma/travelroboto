@@ -10,7 +10,7 @@ import logging
 from typing import Tuple
 
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
-from app.chatbot.llm_chains import question_chain
+from app.chatbot.llm_chains import build_question_chain
 
 logger = logging.getLogger(__name__)
 
@@ -28,28 +28,26 @@ DEFAULT_SYSTEM_PROMPT = (
 
 trip_context = Path(settings.trip_context_path).read_text(encoding="utf-8")
 
-def get_chat_response(question: str) -> Tuple[str, str]:
-    """
-    Generates a chatbot response using the configured LangChain conversation chain.
-
-    Args:
-        question (str): The user's question text.
-
-    Returns:
-        tuple[str, str]: A tuple of:
-            - formatted_history: Minimal SMS-style one-turn transcript
-            - ""               : Placeholder to clear input boxes in UI flows
-
-    Notes:
-        - Logging is intentionally light and avoids printing sensitive data.
-    """
-    preview = (question or "").strip().replace("\n", " ")
+def get_chat_response(
+        message: str,
+        *,
+        model: str = "gpt-4o-mini", 
+        temperature: float = 0.2,
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT
+) -> Tuple[str, str]:
+    
+    preview = (message or "").strip().replace("\n", " ")
     if len(preview) > 80:
         preview = preview[:77] + '...'
     logger.info(f"Generating chat response (preview={preview})")
 
-    response = question_chain.predict(question=question)
-    return f"You: {question}\nTravelbot: {response}\n----------", ""
+    chain = build_question_chain(
+        system_prompt=system_prompt,
+        model=model,
+        temperature=temperature
+    )
+    response = chain.predict(question=question)
+    return f"You: {message}\nTravelbot: {response}\n----------", ""
 
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
 # class ChatHistoryRepo(Protocol):
