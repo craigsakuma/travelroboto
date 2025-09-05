@@ -27,15 +27,19 @@ def get_llm(
         max_retries=max_retries,
     )
 
+def get_prompt(system_prompt: str) -> ChatPromptTemplate:
+    sys_prompt = system_prompt.strip()  # normalize whitespace once
 
-# --- Conversation chain ---
-question_prompt = ChatPromptTemplate.from_messages([
-    ("system", "{system_instructions}"),
-    ("human", "{question}"),
-])
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", sys_prompt),
+            ("human", "{question}"),
+        ]
+    )
+
 question_chain = ConversationChain(
     llm=get_llm(),
-    prompt=question_prompt.partial(system_instructions=system_instructions),
+    prompt=get_prompt("Placeholder for system prompt."),
     input_key="question",
     verbose=True,
 )
