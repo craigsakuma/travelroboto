@@ -1,9 +1,5 @@
 """
-LLM Chain construction for TravelBot.
-
-This module:
-- Builds the flight extraction chain
-- Builds the conversation chain with memory
+LLM Chain factory for TravelBot.
 """
 
 from pathlib import Path
@@ -15,8 +11,22 @@ from langchain_openai import ChatOpenAI
 from app.config import settings
 
 
-# --- Model client ---
-client = ChatOpenAI(model="gpt-4o-mini", api_key=settings.openai_api_key)
+def get_llm(
+    *,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.2,
+    timeout: int | float = 30,
+    max_retries: int = 2,
+) -> ChatOpenAI:
+    
+    return ChatOpenAI(
+        model=model,
+        temperature=temperature,
+        api_key=settings.openai_api_key,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
+
 
 # --- Conversation chain ---
 question_prompt = ChatPromptTemplate.from_messages([
@@ -24,7 +34,7 @@ question_prompt = ChatPromptTemplate.from_messages([
     ("human", "{question}"),
 ])
 question_chain = ConversationChain(
-    llm=client,
+    llm=get_llm(),
     prompt=question_prompt.partial(system_instructions=system_instructions),
     input_key="question",
     verbose=True,
