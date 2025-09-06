@@ -33,11 +33,23 @@ def _resolve_trip_path(override: Optional[str]) -> Optional[str]:
 
 
 async def load_trip_context(path_str: Optional[str] = None) -> str:
+    if not path_str:   
+        logger.warning(f"No trip_context_path provided; continuing with empty context")
+        return ""
+    
     p = Path(path_str)
+
+    if not p.exists():
+        logger.warning(f"Trip context file not found at {p}")
+        return ""
     logger.debug(f"Loading trip context from {p}")
 
-    return await asynchio.to_thread(p.read_text(encoding="utf-8"))
-    
+    try:
+        return await asyncio.to_thread(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.exception(f"Failed reading trip context at {p}: {e}")
+        return "" 
+        
 
 async def get_chat_response(
         message: str,
