@@ -6,6 +6,7 @@ using the configured LangChain chain. Includes a module-level logger
 for lightweight observability.
 """
 
+import asyncio
 import logging
 from pathlib import Path
 from typing import Optonal, Tuple
@@ -31,14 +32,14 @@ def _resolve_trip_path(override: Optional[str]) -> Optional[str]:
     return override or getattr(settings, "trip_context_path", None)
 
 
-def load_trip_context(path_str: Optional[str] = None) -> str:
+async def load_trip_context(path_str: Optional[str] = None) -> str:
     p = Path(path_str)
     logger.debug(f"Loading trip context from {p}")
 
-    return p.read_text(encoding="utf-8"))
+    return await asynchio.to_thread(p.read_text(encoding="utf-8"))
     
 
-def get_chat_response(
+async def get_chat_response(
         message: str,
         *,
         model: str = "gpt-4o-mini", 
@@ -53,15 +54,14 @@ def get_chat_response(
     logger.info(f"Generating chat response (preview={preview})")
 
     resolved_path = _resolve_trip_path(trip_context_path)
-    context = load_trip_context(resolved_path)
+    context = await load_trip_context(resolved_path)
 
     chain = build_question_chain(
         system_prompt=system_prompt,
         model=model,
         temperature=temperature
     )
-    response = chain.invoke({"question": message, "context": context})
-    return response
+    return await chain.ainvoke({"question": message, "context": context})
 
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
 # class ChatHistoryRepo(Protocol):
