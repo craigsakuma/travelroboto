@@ -8,6 +8,7 @@ for lightweight observability.
 
 import asyncio
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Optonal, Tuple
 
@@ -50,6 +51,19 @@ async def load_trip_context(path_str: Optional[str] = None) -> str:
         logger.exception(f"Failed reading trip context at {p}: {e}")
         return "" 
         
+@lru_cache(maxsize=8)    
+def _get_cached_chain(system_prompt: str, model: str, temperature: float):
+    msg = (
+        f"Building (or returning cached) chain: model={model}, "
+        f"temperature={temperature}, prompt_hash={hash(system_prompt)}"
+    )
+    logger.debug(msg)
+    
+    return build_question_chain(
+        system_prompt=system_prompt,
+        model=model,
+        temperature=temperature
+    )
 
 async def get_chat_response(
         message: str,
@@ -72,7 +86,7 @@ async def get_chat_response(
     resolved_path = _resolve_trip_path(trip_context_path)
     context = await load_trip_context(resolved_path)
 
-    chain = build_question_chain(
+    chain = _get_cached_chain(
         system_prompt=system_prompt,
         model=model,
         temperature=temperature
