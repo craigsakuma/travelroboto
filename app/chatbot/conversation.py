@@ -60,6 +60,10 @@ async def get_chat_response(
         trip_context_path: Optional[str] = None    
 ) -> Tuple[str, str]:
     
+    if not message or not message.strip():
+        logger.error("Empty message provided to get_chat_response")
+        raise ValueError("Message must not be empty")
+    
     preview = (message or "").strip().replace("\n", " ")
     if len(preview) > 80:
         preview = preview[:77] + '...'
@@ -73,7 +77,15 @@ async def get_chat_response(
         model=model,
         temperature=temperature
     )
-    return await chain.ainvoke({"question": message, "context": context})
+
+    try:
+        return await chain.ainvoke({"question": message, "context": context})
+    except Exception as e:
+        logger.exception(f"Error during chain invocation for message={message}: {e}")
+        error_msg = (
+            f"Chat response generation failed (model={model}, temp={temperature})"
+        )
+        raise RuntimeError(error_msg) from e
 
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
 # class ChatHistoryRepo(Protocol):
