@@ -87,6 +87,20 @@ async def get_chat_response(
         )
         raise RuntimeError(error_msg) from e
 
+if __name__ == "__main__":
+    import sys
+
+    async def _demo():
+        q = " ".join(sys.argv[1:]) or "What time is our flight to Banff"
+        try:
+            response = await get_chat_response(q)
+            print(response)
+        except Exception as err:
+            print(f"[error] {err}", file=sys.stderr)
+            sys.exit(1)
+    
+    asyncio.run(_demo())
+
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
 # class ChatHistoryRepo(Protocol):
 #     async def load_recent(self, chat_id: str, limit: int = 20) -> list[dict]: ...
