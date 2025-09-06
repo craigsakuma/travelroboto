@@ -65,6 +65,19 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
         temperature=temperature
     )
 
+def dump_chain_cache_stats() -> str:
+    info = _get_cached_chain.cache_info()
+    return (
+        f"hits={info.hits} "
+        f"misses={info.misses} "
+        f"currsize={info.currsize} "
+        f"maxsize={info.maxsize}"
+    )
+
+def clear_chain_cache() -> None:
+    _get_cached_chain.cache_clear()
+
+
 async def get_chat_response(
         message: str,
         *,
