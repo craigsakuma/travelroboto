@@ -1,5 +1,10 @@
 """
-LLM Chain factory for TravelBot.
+LLM chain factories for TravelBot (stateless, no import-time side effects).
+
+Factories:
+- get_llm(model="gpt-4o-mini", temperature=0.2, timeout=30, max_retries=2)
+- get_prompt(system_prompt: str)  # expects {question}, {context}
+- build_question_chain(system_prompt, model, temperature) -> Runnable[dict, str]
 """
 
 from __future__ import annotations
@@ -23,7 +28,11 @@ def get_llm(
     timeout: int | float = 30,
     max_retries: int = 2,
 ) -> ChatOpenAI:
-    
+    """
+    Factory for ChatOpenAI client.
+    - Validates that OPENAI_API_KEY is present.
+    - Exposes timeout & retry for tunable resilience.
+    """    
     if not settings.openai_api_key:
         logger.error("OPENAI_API_KEY is not set")
         raise RuntimeError("OPENAI_API_KEY is not set. Configure it in Railway or your .env.")
@@ -51,6 +60,13 @@ def get_llm(
     )
 
 def get_prompt(system_prompt: str) -> ChatPromptTemplate:
+    """
+    Build the chat prompt.
+
+    Variables expected at runtime:
+      - {question} : user input
+      - {context}  : optional itinerary/RAG context (provided by service layer)
+    """
     if not isinstance(system_prompt, str) or not system_prompt.strip():
         raise ValueError("system_prompt must not be empty")
     sys_prompt = system_prompt.strip()  # normalize whitespace once
@@ -72,7 +88,10 @@ def build_question_chain(
     timeout: int | float = 30,
     max_retries: int = 2,
 ) -> Runnable[dict, str]:
-
+    """
+    Compose LCEL chain: Prompt -> LLM -> String.
+    Adds light validation and a run_name tag for tracing.
+    """
     logger.debug("Building question chain (model={model}, temp={temperature})", model, temperature)
     prompt = get_prompt(system_prompt)
     llm = get_llm(model=model, temperature=temperature, timeout=timeout, max_retries=max_retries)

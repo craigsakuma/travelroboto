@@ -16,7 +16,7 @@ import asyncio
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Optonal, Tuple
+from typing import Optional, Tuple
 
 from app.config import settings
 from app.chatbot.llm_chains import build_question_chain
