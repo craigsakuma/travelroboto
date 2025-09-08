@@ -1,9 +1,15 @@
 """
-Conversation service for TravelBot.
+Conversation service for TravelBot (stateless for Pass 1).
 
-Provides a synchronous entry point for generating chatbot responses
-using the configured LangChain chain. Includes a module-level logger
-for lightweight observability.
+- Loads trip context on demand (safe if missing, non-blocking).
+- Builds the chain via factories on demand.
+- Returns a single string response.
+
+TODO(memory, Pass 2): introduce a ChatHistoryRepo interface:
+  class ChatHistoryRepo(Protocol):
+      async def load_recent(self, chat_id: str, limit: int = 20) -> list[dict]: ...
+      async def append(self, chat_id: str, messages: list[dict]) -> None: ...
+Then wire it here (not in llm_chains.py) to keep concerns separated.
 """
 
 import asyncio
@@ -30,10 +36,28 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 def _resolve_trip_path(override: Optional[str]) -> Optional[str]:
+    """
+    Resolve which trip context path to use, preferring an explicit override.
+
+    Args:
+        override: Optional explicit file path to a trip context.
+
+    Returns:
+        The string path to use, or None if not provided/configured.
+    """
     return override or getattr(settings, "trip_context_path", None)
 
 
 async def load_trip_context(path_str: Optional[str] = None) -> str:
+    """
+    Load the trip itinerary context text from disk without blocking the event loop.
+
+    Args:
+        path_str: Optional explicit path. If None or empty, returns an empty string.
+
+    Returns:
+        The file contents as a string, or an empty string if not found / not provided.
+    """
     if not path_str:   
         logger.warning(f"No trip_context_path provided; continuing with empty context")
         return ""
@@ -53,6 +77,13 @@ async def load_trip_context(path_str: Optional[str] = None) -> str:
         
 @lru_cache(maxsize=8)    
 def _get_cached_chain(system_prompt: str, model: str, temperature: float):
+    """
+    Build (or reuse) a question chain keyed by its main configuration.
+
+    Notes:
+        - system_prompt, model, and temperature are hashable; this enables simple caching.
+        - If you rotate keys or change prompts frequently, consider a more explicit cache.
+    """
     msg = (
         f"Building (or returning cached) chain: model={model}, "
         f"temperature={temperature}, prompt_hash={hash(system_prompt)}"
@@ -66,6 +97,15 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
     )
 
 def dump_chain_cache_stats() -> str:
+    """
+    Return a human-readable string of LRU cache statistics.
+
+    Useful for monitoring cache efficiency (hits vs. misses) and debugging
+    performance when multiple prompt/model/temperature combos are used.
+
+    Returns:
+        str: formatted stats string (e.g. "hits=5 misses=2 currsize=3 maxsize=8")
+    """
     info = _get_cached_chain.cache_info()
     return (
         f"hits={info.hits} "
@@ -75,6 +115,14 @@ def dump_chain_cache_stats() -> str:
     )
 
 def clear_chain_cache() -> None:
+    """
+    Clear all entries from the cached question-chain factory.
+
+    Use this when:
+      - Updating the default system prompt,
+      - Switching models globally,
+      - Or during debugging to reset cache state.
+    """
     _get_cached_chain.cache_clear()
 
 
@@ -86,7 +134,23 @@ async def get_chat_response(
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
         trip_context_path: Optional[str] = None    
 ) -> Tuple[str, str]:
-    
+    """
+    Stateless ask: build/reuse the chain and call LLM with provided message + optional context.
+
+    Args:
+        message: User's question text.
+        model: OpenAI model name to use.
+        temperature: Sampling temperature (typically 0.0–2.0).
+        system_prompt: System instructions for the LLM.
+        trip_context_path: Optional file path to itinerary text; overrides settings.trip_context_path.
+
+    Returns:
+        str: LLM-generated response
+
+    Raises:
+        ValueError: If `message` is empty/whitespace.
+        RuntimeError: If LLM invocation fails.
+    """    
     if not message or not message.strip():
         logger.error("Empty message provided to get_chat_response")
         raise ValueError("Message must not be empty")
