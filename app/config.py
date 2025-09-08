@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from typing import Literal
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # adjust if needed
 
@@ -13,6 +14,11 @@ class Settings(BaseSettings):
     # --- App ---
     app_env: str = Field(default="development")
 
+    # --- Logging ---
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        default="INFO", description="Logging level for the application"
+    )
+    
     # --- LLM ---
     openai_api_key: str | None = None
 
