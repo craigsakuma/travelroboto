@@ -1,36 +1,43 @@
 """
-FastAPI web UI.
+FastAPI interface for TravelRoboto.
 
-This module exposes the application factory used by Uvicorn's --factory mode
-and wires in cross-cutting concerns needed in production:
+Provides the application factory used by Uvicorn's --factory mode and wires in
+operational concerns required for production:
 
-- Correlation IDs: per-request `X-Request-ID` propagated via ContextVar so logs
-  can be traced end-to-end across async boundaries.
-- Access timing: lightweight request access logs with duration, status, and path.
-- Static assets and Jinja2 templates for the minimal HTML chat interface.
-- Minimal JSON endpoints for health and chat.
+- Request correlation: propagate `X-Request-ID` via ContextVar so logs across
+  async boundaries can be traced to a single request.
+- Access timing: emit lightweight per-request logs (method/path/status/duration).
+- Exception policy: standardized JSON envelopes for 422/500 with correlation IDs.
+- Static assets + Jinja2 templates for the minimal chat UI.
 
-Notes:
-- Logging formatters may rely on `%(request_id)s)`; the Request-ID middleware
-  ensures the ContextVar is set for the duration of the request and cleared after.
+Root logger configuration (handlers/formatters/levels) is owned by app/main.py.
 """
 
 from __future__ import annotations
 
 import logging
 import time
+import uuid
+from typing import Any
 
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
+from starlette.status import (
+    HTTP_200_OK,
+    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
 from app.chatbot.conversation import get_chat_response
 from app.logging_utils import (
     get_logger,
     new_request_id,
     set_request_id,
+    get_request_id,
     log_with_id,
 )
 
@@ -38,62 +45,91 @@ logger = get_logger(__name__)
 
 
 class ChatRequest(BaseModel):
-    """Request schema for the chat endpoint.
-
-    Attributes
-    ----------
-    message : str
-        Free-form user input forwarded to the chatbot pipeline.
-    """
+    """Request payload for the /chat endpoint."""
     message: str
 
 
+def _register_exception_handlers(app: FastAPI) -> None:
+    """Attach global exception handlers for validation and unhandled errors.
+
+    Standardizes client responses and ensures server logs include correlation
+    metadata (request_id, path, opaque error_id) for production triage.
+    """
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error_handler(request: Request, exc: RequestValidationError):
+        """Return a concise 422 with structured validation details.
+
+        Logs at WARNING (client error) with the request path and error count.
+        Does not log raw request bodies to avoid leaking sensitive input.
+        """
+        rid = get_request_id()
+        errors = exc.errors()  # structured list provided by FastAPI
+        log_with_id(
+            logger,
+            logging.WARNING,
+            "Request validation failed",
+            path=request.url.path,
+            errors=len(errors),
+        )
+        payload = {
+            "error": "validation_error",
+            "message": "Request validation failed.",
+            "request_id": rid,
+            "details": errors,
+        }
+        return JSONResponse(status_code=HTTP_422_UNPROCESSABLE_ENTITY, content=payload)
+
+    @app.exception_handler(Exception)
+    async def _unhandled_error_handler(request: Request, exc: Exception):
+        """Convert unexpected exceptions to a safe 500 JSON response.
+
+        - Logs at ERROR with stack trace (logger.exception).
+        - Includes request_id and a short error_id to correlate client reports
+          with server logs.
+        - Hides internal details from clients.
+        """
+        rid = get_request_id()
+        error_id = str(uuid.uuid4())[:8]  # short ID to find the matching log line
+
+        # logger.exception captures stack trace automatically
+        logger.exception(
+            "Unhandled exception",
+            extra={"request_id": rid, "error_id": error_id, "path": str(request.url.path)},
+        )
+
+        payload = {
+            "error": "internal_server_error",
+            "message": "An unexpected error occurred.",
+            "request_id": rid,
+            "error_id": error_id,
+        }
+        return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR, content=payload)
+
+
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
+    """Create and configure the FastAPI application for the web UI.
 
     Returns
     -------
     FastAPI
-        A fully configured application instance, including middleware for
-        correlation IDs and access timing, static/template mounts, and routes.
-
-    Design
-    ------
-    - Keeps logging/correlation concerns in middleware to avoid polluting
-      endpoint code with boilerplate.
-    - Mounts static/template paths relative to the repository layout
-      (app/interfaces/web/{static,templates}).
+        App instance with correlation/timing middleware, global exception
+        handlers, static/template mounts, and basic routes.
     """
     app = FastAPI(title="Chatbot Web Interface")
 
-    # -------------------------------
-    # Request-ID middleware
-    # -------------------------------
+    # ----------------------------------------------------------------------
+    # Request-ID middleware 
+    # ----------------------------------------------------------------------
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
-        """Attach a correlation ID to the request lifecycle.
+        """Propagate a correlation ID for the lifetime of the request.
 
-        Behavior
-        --------
-        - If the client supplies `X-Request-ID`, use it; otherwise generate a
-          UUID4.
-        - Set the value in a ContextVar so downstream logs include the same ID.
-        - Echo `X-Request-ID` on the response for client/server correlation.
-        - Always clear the ContextVar in a `finally` block to prevent leakage
-          across requests in long-lived workers.
-
-        Parameters
-        ----------
-        request : fastapi.Request
-            Incoming HTTP request.
-        call_next : Callable[[Request], Awaitable[Response]]
-            FastAPI-provided callable that advances to the next middleware/route.
-
-        Returns
-        -------
-        starlette.responses.Response
-            The downstream response with `X-Request-ID` header attached.
+        Uses client-supplied `X-Request-ID` when present; otherwise generates a
+        UUID4. The value is stored in a ContextVar so downstream logs include
+        the same ID. Echoes `X-Request-ID` in the response and clears the
+        ContextVar in a finally block to prevent leakage.
         """
+
         rid = request.headers.get("X-Request-ID") or new_request_id()
         set_request_id(rid)
         try:
@@ -104,28 +140,15 @@ def create_app() -> FastAPI:
             # Clear for safety in long-lived worker contexts
             set_request_id(None)
 
-    # -------------------------------
-    # Access-timing middleware
-    # -------------------------------
+    # ----------------------------------------------------------------------
+    # Access-timing middleware 
+    # ----------------------------------------------------------------------
     @app.middleware("http")
     async def access_timing_middleware(request: Request, call_next):
-        """Emit a concise access log for each request (method, path, status, ms).
+        """Emit a concise access log: method, path, status_code, elapsed_ms.
 
-        This middleware is intentionally lightweight and independent of any
-        access-log middleware that a server (e.g., Uvicorn) may provide so that
-        application-layer logs always include the same correlation ID and fields.
-
-        Parameters
-        ----------
-        request : fastapi.Request
-            Incoming HTTP request.
-        call_next : Callable[[Request], Awaitable[Response]]
-            FastAPI-provided callable that advances to the next middleware/route.
-
-        Returns
-        -------
-        starlette.responses.Response
-            The downstream response (re-raised if an exception occurs).
+        Supplements server access logs so application logs carry the same
+        correlation metadata as business logs.
         """
         start = time.perf_counter()
         method = request.method
@@ -155,43 +178,36 @@ def create_app() -> FastAPI:
             )
             raise
 
-    # Static files & templates
-    # (Paths match your repo: app/interfaces/web/{static,templates})
-    app.mount(
-        "/static", 
-        StaticFiles(directory="app/interfaces/web/static"), 
-        name="static"
-    )
+    # ----------------------------------------------------------------------
+    # Global exception handlers
+    # ----------------------------------------------------------------------
+    _register_exception_handlers(app)
+
+    # ----------------------------------------------------------------------
+    # Static files, templates, and routes 
+    # ----------------------------------------------------------------------
+    app.mount("/static", StaticFiles(directory="app/interfaces/web/static"), name="static")
     templates = Jinja2Templates(directory="app/interfaces/web/templates")
 
     router = APIRouter()
 
-    @router.get("/", response_class=HTMLResponse)
-    async def home(request: Request):
-        """Render the HTML chat UI."""
+    @router.get("/", response_class=HTMLResponse, status_code=HTTP_200_OK)
+    async def home(request: Request) -> HTMLResponse:
+        """Render the chat UI."""
         return templates.TemplateResponse("chat.html", {"request": request})
 
     @router.post("/chat")
-    async def chat_endpoint(chat_request: ChatRequest):
-        """Chat API endpoint.
+    async def chat_endpoint(chat_request: ChatRequest) -> JSONResponse:
+        """Minimal chat endpoint.
 
-        Parameters
-        ----------
-        chat_request : ChatRequest
-            Pydantic model containing the user message.
-
-        Returns
-        -------
-        fastapi.responses.JSONResponse
-            JSON payload with the chatbot's response, e.g.:
-            `{ "response": "<string>" }`.
+        Avoid logging raw payloads; prefer derived/aggregated fields.
         """
         response = get_chat_response(chat_request.message)
         return JSONResponse(content={"response": response})
 
     @router.get("/health")
-    async def health():
-        """Liveness probe endpoint for orchestration/health checks."""
+    async def health() -> dict[str, str]:
+        """Liveness probe for orchestration/monitoring."""
         return {"status": "ok"}
 
     app.include_router(router)
