@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Literal
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # adjust if needed
+BASE_DIR = Path(__file__).resolve().parent.parent  
 
 class Settings(BaseSettings):
     # --- App ---
@@ -16,9 +16,19 @@ class Settings(BaseSettings):
 
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        default="INFO", description="Logging level for the application"
+        default="DEBUG", description="Logging level for the application"
     )
-    
+
+    # --- Web UI asset paths ---
+    templates_dir: Path = Field(
+        default=BASE_DIR / "app/interfaces/web/templates",
+        description="Directory containing Jinja2 templates",
+    )
+    static_dir: Path = Field(
+        default=BASE_DIR / "app/interfaces/web/static",
+        description="Directory containing static assets",
+    )
+
     # --- LLM ---
     openai_api_key: str | None = None
 
