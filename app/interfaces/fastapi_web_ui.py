@@ -49,6 +49,60 @@ class ChatRequest(BaseModel):
     message: str
 
 
+# -----------------------------------------------------------------------------
+# Middleware
+# -----------------------------------------------------------------------------
+
+def _register_middlewares(app: FastAPI) -> None:
+    """Register request correlation and access-timing middleware."""
+    
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        """Propagate a correlation ID for the lifetime of the request."""
+        rid = request.headers.get("X-Request-ID") or new_request_id()
+        set_request_id(rid)
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = rid
+            return response
+        finally:
+            set_request_id(None)  # prevent leakage across requests
+
+    @app.middleware("http")
+    async def access_timing_middleware(request: Request, call_next):
+        """Emit a single, concise access log (method/path/status/elapsed_ms)."""
+        start = time.perf_counter()
+        method = request.method
+        path = request.url.path
+
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            elapsed_ms = (time.perf_counter() - start) * 1000.0
+            log_with_id(
+                logger, 
+                logging.INFO, 
+                f"{method} {path}",
+                status_code=status, 
+                elapsed_ms=round(elapsed_ms, 2),
+            )
+            return response
+        except Exception as exc:
+            elapsed_ms = (time.perf_counter() - start) * 1000.0
+            log_with_id(
+                logger, 
+                logging.ERROR, 
+                f"{method} {path} raised",
+                elapsed_ms=round(elapsed_ms, 2), 
+                exc_type=type(exc).__name__,
+            )
+            raise
+
+
+# -----------------------------------------------------------------------------
+# Exception handlers
+# -----------------------------------------------------------------------------
+
 def _register_exception_handlers(app: FastAPI) -> None:
     """Attach global exception handlers for validation and unhandled errors.
 
@@ -117,71 +171,6 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Chatbot Web Interface")
 
-    # ----------------------------------------------------------------------
-    # Request-ID middleware 
-    # ----------------------------------------------------------------------
-    @app.middleware("http")
-    async def request_id_middleware(request: Request, call_next):
-        """Propagate a correlation ID for the lifetime of the request.
-
-        Uses client-supplied `X-Request-ID` when present; otherwise generates a
-        UUID4. The value is stored in a ContextVar so downstream logs include
-        the same ID. Echoes `X-Request-ID` in the response and clears the
-        ContextVar in a finally block to prevent leakage.
-        """
-
-        rid = request.headers.get("X-Request-ID") or new_request_id()
-        set_request_id(rid)
-        try:
-            response = await call_next(request)
-            response.headers["X-Request-ID"] = rid
-            return response
-        finally:
-            # Clear for safety in long-lived worker contexts
-            set_request_id(None)
-
-    # ----------------------------------------------------------------------
-    # Access-timing middleware 
-    # ----------------------------------------------------------------------
-    @app.middleware("http")
-    async def access_timing_middleware(request: Request, call_next):
-        """Emit a concise access log: method, path, status_code, elapsed_ms.
-
-        Supplements server access logs so application logs carry the same
-        correlation metadata as business logs.
-        """
-        start = time.perf_counter()
-        method = request.method
-        path = request.url.path
-
-        try:
-            response = await call_next(request)
-            status = response.status_code
-            elapsed_ms = (time.perf_counter() - start) * 1000.0
-
-            log_with_id(
-                logger,
-                logging.INFO,
-                f"{method} {path}",
-                status_code=status,
-                elapsed_ms=round(elapsed_ms, 2),
-            )
-            return response
-        except Exception as exc:
-            elapsed_ms = (time.perf_counter() - start) * 1000.0
-            log_with_id(
-                logger,
-                logging.ERROR,
-                f"{method} {path} raised",
-                elapsed_ms=round(elapsed_ms, 2),
-                exc_type=type(exc).__name__,
-            )
-            raise
-
-    # ----------------------------------------------------------------------
-    # Global exception handlers
-    # ----------------------------------------------------------------------
-    _register_exception_handlers(app)
 
     # ----------------------------------------------------------------------
     # Static files, templates, and routes 
@@ -209,6 +198,9 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         """Liveness probe for orchestration/monitoring."""
         return {"status": "ok"}
+    
+    _register_middlewares(app)
+    _register_exception_handlers(app)
 
     app.include_router(router)
     return app
