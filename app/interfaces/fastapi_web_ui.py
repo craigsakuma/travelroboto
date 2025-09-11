@@ -33,21 +33,79 @@ from starlette.status import (
 )
 
 from app.chatbot.conversation import get_chat_response
+from app.config import settings
 from app.logging_utils import (
     get_logger,
     new_request_id,
     set_request_id,
     get_request_id,
     log_with_id,
+    log_context,
+    truncate_msg,
 )
+
+# -----------------------------------------------------------------------------
+# Globals
+# -----------------------------------------------------------------------------
 
 logger = get_logger(__name__)
 
+# Routers: HTML under "/", JSON under "/api".
+web_router = APIRouter()
+api_router = APIRouter(prefix="/api")
+
+
+# -----------------------------------------------------------------------------
+# Models
+# -----------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
     """Request payload for the /chat endpoint."""
     message: str
 
+
+# -----------------------------------------------------------------------------
+# Web (HTML) routes
+# -----------------------------------------------------------------------------
+
+@web_router.get("/", response_class=HTMLResponse, status_code=HTTP_200_OK)
+async def home(request: Request) -> HTMLResponse:
+    """Render the chat UI; client JS hits `/api/chat` for responses."""
+    with log_context(logger, "render_home"):
+        templates: Jinja2Templates = request.app.state.templates  # app-scoped
+        return templates.TemplateResponse("chat.html", {"request": request})
+
+
+# -----------------------------------------------------------------------------
+# API (JSON) routes
+# -----------------------------------------------------------------------------
+
+@api_router.get("/healthz")
+async def healthz() -> dict[str, str]:
+    """Liveness probe: trivial and side-effect free."""
+    return {"status": "ok"}
+
+
+@api_router.post("/chat")
+async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
+    """Thin adapter over `get_chat_response`."""
+    message = payload.message.strip()
+    with log_context(logger, "chat_api", input_len=len(message)):
+        # Avoid logging full payloads at higher levels; short preview in DEBUG only.
+        log_with_id(
+            logger, 
+            logging.DEBUG, 
+            "chat_input_preview",
+            preview=truncate_msg(message, 300),
+        )
+
+        reply = await get_chat_response(message)
+        log_with_id(
+            logger, logging.DEBUG, "chat_reply_preview",
+            preview=truncate_msg(str(reply), 300),
+        )
+        return {"reply": reply}
+    
 
 # -----------------------------------------------------------------------------
 # Middleware
@@ -148,7 +206,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         # logger.exception captures stack trace automatically
         logger.exception(
             "Unhandled exception",
-            extra={"request_id": rid, "error_id": error_id, "path": str(request.url.path)},
+            extra={"error_id": error_id, "path": str(request.url.path)},
         )
 
         payload = {
@@ -171,36 +229,18 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Chatbot Web Interface")
 
-
-    # ----------------------------------------------------------------------
-    # Static files, templates, and routes 
-    # ----------------------------------------------------------------------
-    app.mount("/static", StaticFiles(directory="app/interfaces/web/static"), name="static")
-    templates = Jinja2Templates(directory="app/interfaces/web/templates")
-
-    router = APIRouter()
-
-    @router.get("/", response_class=HTMLResponse, status_code=HTTP_200_OK)
-    async def home(request: Request) -> HTMLResponse:
-        """Render the chat UI."""
-        return templates.TemplateResponse("chat.html", {"request": request})
-
-    @router.post("/chat")
-    async def chat_endpoint(chat_request: ChatRequest) -> JSONResponse:
-        """Minimal chat endpoint.
-
-        Avoid logging raw payloads; prefer derived/aggregated fields.
-        """
-        response = get_chat_response(chat_request.message)
-        return JSONResponse(content={"response": response})
-
-    @router.get("/health")
-    async def health() -> dict[str, str]:
-        """Liveness probe for orchestration/monitoring."""
-        return {"status": "ok"}
+    # App-scoped Jinja environment (config-driven; easy to override in tests/sub-apps).
+    app.state.templates = Jinja2Templates(directory=str(settings.templates_dir))
     
+    # Mount static assets via configuration (supports env/test overrides).
+    app.mount("/static", StaticFiles(directory=str(settings.static_dir), check_dir=True), name="static")
+
     _register_middlewares(app)
     _register_exception_handlers(app)
+    
+    # Attach routers (HTML at "/", JSON under "/api").
+    app.include_router(web_router)
+    app.include_router(api_router)
 
-    app.include_router(router)
     return app
+
