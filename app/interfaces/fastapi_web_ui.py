@@ -15,6 +15,7 @@ Root logger configuration (handlers/formatters/levels) is owned by app/main.py.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 import uuid
@@ -105,7 +106,8 @@ async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
             "chat_input_preview",
             preview=truncate_msg(message, 300),
         )
-        reply = await get_chat_response(message)
+        result = get_chat_response(message)
+        reply = await _maybe_await(result)
         log_with_id(
             logger, logging.DEBUG, "chat_reply_preview",
             preview=truncate_msg(str(reply), 300),
@@ -122,7 +124,8 @@ async def sms_webhook(request: Request) -> dict[str, Any]:
             logger, logging.DEBUG, "sms_input_preview",
             preview=truncate_msg(message, 300),
         )
-        reply = await get_chat_response(message)
+        result = get_chat_response(message)
+        reply = await _maybe_await(result)
         log_with_id(
             logger, logging.DEBUG, "sms_reply_preview",
             preview=truncate_msg(str(reply), 300),
@@ -291,3 +294,10 @@ async def _extract_message(request: Request) -> str:
             return msg
 
     raise ValueError("No message found in request payload")
+
+
+async def _maybe_await(value: Any) -> Any:
+    """Await `value` if awaitable; otherwise return it unchanged."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
