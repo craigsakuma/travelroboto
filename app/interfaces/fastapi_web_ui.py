@@ -21,7 +21,7 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -293,7 +293,7 @@ async def _extract_message(request: Request) -> str:
         if msg:
             return msg
 
-    raise ValueError("No message found in request payload")
+    raise HTTPException(status_code=400, detail="No message found in request payload")
 
 
 async def _maybe_await(value: Any) -> Any:
