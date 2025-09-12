@@ -19,6 +19,7 @@ import inspect
 import logging
 import time
 import uuid
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, APIRouter, Request, HTTPException
@@ -242,7 +243,27 @@ def _register_exception_handlers(app: FastAPI) -> None:
             "error_id": error_id,
         }
         return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR, content=payload)
+    
 
+# -----------------------------------------------------------------------------
+# Lifespan
+# -----------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Emit consistent startup/shutdown logs; keep work here lightweight."""
+    with log_context(logger, "app_startup"):
+        pass
+    try:
+        yield
+    finally:
+        with log_context(logger, "app_shutdown"):
+            pass
+
+
+# -----------------------------------------------------------------------------
+# App factory
+# -----------------------------------------------------------------------------
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application for the web UI.
@@ -253,8 +274,12 @@ def create_app() -> FastAPI:
         App instance with correlation/timing middleware, global exception
         handlers, static/template mounts, and basic routes.
     """
-    app = FastAPI(title="Chatbot Web Interface")
-
+    app = FastAPI(
+        title="Chatbot Web Interface",
+        version='0.1.0',
+        lifespan=lifespan,
+    )
+    
     # App-scoped Jinja environment (config-driven; easy to override in tests/sub-apps).
     app.state.templates = Jinja2Templates(directory=str(settings.templates_dir))
     
