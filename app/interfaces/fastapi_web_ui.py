@@ -86,6 +86,13 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@api_router.get("/readiness")
+async def readiness() -> dict[str, str]:
+    """Readiness probe: tailor to dependencies (DB/caches) as needed."""
+    log_with_id(logger, logging.DEBUG, "readiness_check")
+    return {"status": "ready"}
+
+
 @api_router.post("/chat")
 async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
     """Thin adapter over `get_chat_response`."""
@@ -98,14 +105,31 @@ async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
             "chat_input_preview",
             preview=truncate_msg(message, 300),
         )
-
         reply = await get_chat_response(message)
         log_with_id(
             logger, logging.DEBUG, "chat_reply_preview",
             preview=truncate_msg(str(reply), 300),
         )
         return {"reply": reply}
-    
+
+
+@api_router.post("/sms")
+async def sms_webhook(request: Request) -> dict[str, Any]:
+    """Vendor-agnostic SMS webhook: accepts JSON or form data, returns JSON."""
+    with log_context(logger, "sms_webhook"):
+        data = await request.json()
+        message = data.get("message", "").strip()
+        log_with_id(
+            logger, logging.DEBUG, "sms_input_preview",
+            preview=truncate_msg(message, 300),
+        )
+        reply = await get_chat_response(message)
+        log_with_id(
+            logger, logging.DEBUG, "sms_reply_preview",
+            preview=truncate_msg(str(reply), 300),
+        )
+        return {"reply": reply}
+
 
 # -----------------------------------------------------------------------------
 # Middleware
