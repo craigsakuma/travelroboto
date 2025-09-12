@@ -117,8 +117,7 @@ async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
 async def sms_webhook(request: Request) -> dict[str, Any]:
     """Vendor-agnostic SMS webhook: accepts JSON or form data, returns JSON."""
     with log_context(logger, "sms_webhook"):
-        data = await request.json()
-        message = data.get("message", "").strip()
+        message = await _extract_message(request)
         log_with_id(
             logger, logging.DEBUG, "sms_input_preview",
             preview=truncate_msg(message, 300),
@@ -268,3 +267,27 @@ def create_app() -> FastAPI:
 
     return app
 
+
+# -----------------------------------------------------------------------------
+# Internal helpers
+# -----------------------------------------------------------------------------
+
+async def _extract_message(request: Request) -> str:
+    """Extract a text message from JSON or form-encoded requests."""
+    ctype = request.headers.get("content-type", "").lower()
+
+    # JSON body
+    if "application/json" in ctype:
+        data = await request.json()
+        msg = (data.get("message") or data.get("body") or "").strip()
+        if msg:
+            return msg
+
+    # Form body (e.g., application/x-www-form-urlencoded, multipart/form-data)
+    if "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
+        form = await request.form()
+        msg = (form.get("message") or form.get("body") or form.get("Body") or "").strip()
+        if msg:
+            return msg
+
+    raise ValueError("No message found in request payload")
