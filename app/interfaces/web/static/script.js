@@ -1,56 +1,63 @@
-async function sendMessage() {
-    const inputBox = document.getElementById("user-input");
-    const message = inputBox.value;
-    if (!message) return;
+// TravelRoboto chat UI logic
+// Wires the input to POST /api/chat and renders { reply } as a chat bubble.
 
-    const response = await fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({message})
-    });
-    const data = await response.json();
+const chatBox = document.getElementById("chat-box");
+const form = document.getElementById("chat-form");
+const input = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
 
-    const chatBox = document.getElementById("chat-box");
-    chatBox.innerHTML += `<div><b>You:</b> ${message}</div>`;
-    chatBox.innerHTML += `<div><b>Bot:</b> ${data.response}</div>`;
-    inputBox.value = "";
-    chatBox.scrollTop = chatBox.scrollHeight;
+function appendMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = `message ${role}-message`;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
-//##################################
 
+function setPending(isPending) {
+  sendBtn.disabled = isPending;
+  sendBtn.textContent = isPending ? "Sending…" : "Send";
+}
 
-async function sendMessage() {
-  const inputBox = document.getElementById("user-input");
-  const message = inputBox.value.trim();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const message = input.value.trim();
   if (!message) return;
 
-  const chatBox = document.getElementById("chat-box");
-
-  // Add user message bubble
-  const userBubble = document.createElement("div");
-  userBubble.className = "message user-message";
-  userBubble.textContent = message;
-  chatBox.appendChild(userBubble);
-
-  inputBox.value = "";
-  chatBox.scrollTop = chatBox.scrollHeight;
+  appendMessage("user", message);
+  input.value = "";
+  setPending(true);
 
   try {
-    const response = await fetch("/chat", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message }),
     });
-    const data = await response.json();
 
-    // Add bot message bubble
-    const botBubble = document.createElement("div");
-    botBubble.className = "message bot-message";
-    botBubble.textContent = data.response;
-    chatBox.appendChild(botBubble);
+    // Optional: surface request id if server provides it
+    const reqId = res.headers.get("X-Request-ID");
 
-    chatBox.scrollTop = chatBox.scrollHeight;
+    if (!res.ok) {
+      appendMessage("sys", `Error ${res.status}${reqId ? ` (rid ${reqId})` : ""}`);
+      console.error("Chat error:", res.status, await safeText(res));
+      return;
+    }
+
+    const data = await res.json();
+
+    // Backend returns { reply: "..." } per your API
+    const reply = data?.reply ?? "(no reply)";
+    appendMessage("bot", reply);
   } catch (err) {
-    console.error("Error sending message:", err);
+    appendMessage("sys", "Network error. Please try again.");
+    console.error("Network error:", err);
+  } finally {
+    setPending(false);
+    input.focus();
   }
+});
+
+async function safeText(response) {
+  try { return await response.text(); } catch { return ""; }
 }
