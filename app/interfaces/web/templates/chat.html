@@ -1,18 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>TravelBot Chat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TravelRoboto — Chat</title>
   <link rel="stylesheet" href="./../static/styles.css">
 </head>
 <body>
-  <div class="chat-container">
-    <div id="chat-box" class="chat-box"></div>
-    <div class="input-area">
-      <input type="text" id="user-input" placeholder="iMessage" onkeydown="if(event.key==='Enter'){sendMessage()}">
-      <button onclick="sendMessage()">Send</button>
-    </div>
-  </div>
+  <main class="chat-container">
+    <header class="chat-header" role="banner">
+      <h1 class="app-title">TravelRoboto</h1>
+    </header>
+
+    <section id="chat-box" class="chat-box" aria-live="polite" aria-label="Chat transcript"></section>
+
+    <footer class="input-area" role="contentinfo">
+      <form id="chat-form" autocomplete="off">
+        <input
+          id="user-input"
+          type="text"
+          inputmode="text"
+          placeholder="Type your message…"
+          aria-label="Message"
+          required
+        />
+        <button id="send-btn" type="submit" aria-label="Send message">Send</button>
+      </form>
+    </footer>
+  </main>
   <script src="./../static/script.js"></script>
 </body>
 </html>
