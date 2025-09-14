@@ -12,6 +12,8 @@ TODO(memory, Pass 2): introduce a ChatHistoryRepo interface:
 Then wire it here (not in llm_chains.py) to keep concerns separated.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from functools import lru_cache
@@ -20,8 +22,14 @@ from typing import Optional, Tuple
 
 from app.config import settings
 from app.chatbot.llm_chains import build_question_chain
+from app.logging_utils import (  
+    get_logger,
+    log_with_id,
+    log_context,
+    truncate_msg,
+)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are a chatbot for a travel app that answers questions about the travel itinerary. "
@@ -63,17 +71,24 @@ async def load_trip_context(path_str: Optional[str] = None) -> str:
         return ""
     
     p = Path(path_str)
-
     if not p.exists():
-        logger.warning(f"Trip context file not found at {p}")
+        log_with_id(logger, level=logging.WARNING, event="trip_context_not_found", path=str(p))  
         return ""
-    logger.debug(f"Loading trip context from {p}")
 
+    log_with_id(logger, level=logging.DEBUG, event="trip_context_load", path=str(p))  
     try:
         return await asyncio.to_thread(p.read_text(encoding="utf-8"))
-    except Exception as e:
-        logger.exception(f"Failed reading trip context at {p}: {e}")
-        return "" 
+    except Exception as exc:
+        logger.exception("Failed reading trip context at %s: %s", p, exc)
+        log_with_id(
+            logger,
+            level=logging.ERROR,
+            event="trip_context_read_failed",
+            path=str(p),
+            error=str(exc),
+        )
+        return ""
+
         
 @lru_cache(maxsize=8)    
 def _get_cached_chain(system_prompt: str, model: str, temperature: float):
@@ -84,16 +99,18 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
         - system_prompt, model, and temperature are hashable; this enables simple caching.
         - If you rotate keys or change prompts frequently, consider a more explicit cache.
     """
-    msg = (
-        f"Building (or returning cached) chain: model={model}, "
-        f"temperature={temperature}, prompt_hash={hash(system_prompt)}"
+    log_with_id(
+        logger,
+        level=logging.DEBUG,
+        event="chain_cache_build",
+        model=model,
+        temperature=temperature,
+        prompt_hash=hash(system_prompt),
     )
-    logger.debug(msg)
-    
     return build_question_chain(
         system_prompt=system_prompt,
         model=model,
-        temperature=temperature
+        temperature=temperature,
     )
 
 def dump_chain_cache_stats() -> str:
@@ -140,7 +157,7 @@ async def get_chat_response(
     Args:
         message: User's question text.
         model: OpenAI model name to use.
-        temperature: Sampling temperature (typically 0.0–2.0).
+        temperature: Sampling temperature (typically 0.0 - 2.0).
         system_prompt: System instructions for the LLM.
         trip_context_path: Optional file path to itinerary text; overrides settings.trip_context_path.
 
@@ -152,13 +169,12 @@ async def get_chat_response(
         RuntimeError: If LLM invocation fails.
     """    
     if not message or not message.strip():
-        logger.error("Empty message provided to get_chat_response")
+        log_with_id(logger, level=logging.ERROR, event="chat_empty_message") 
         raise ValueError("Message must not be empty")
     
-    preview = (message or "").strip().replace("\n", " ")
-    if len(preview) > 80:
-        preview = preview[:77] + '...'
-    logger.info(f"Generating chat response (preview={preview})")
+    preview_base = (message or "").strip().replace("\n", " ")
+    preview = truncate_msg(preview_base, max_length=80)
+    log_with_id(logger, level=logging.INFO, event="chat_generate", preview=preview)
 
     resolved_path = _resolve_trip_path(trip_context_path)
     context = await load_trip_context(resolved_path)
@@ -169,14 +185,29 @@ async def get_chat_response(
         temperature=temperature
     )
 
-    try:
-        return await chain.ainvoke({"question": message, "context": context})
-    except Exception as e:
-        logger.exception(f"Error during chain invocation for message={message}: {e}")
-        error_msg = (
-            f"Chat response generation failed (model={model}, temp={temperature})"
-        )
-        raise RuntimeError(error_msg) from e
+    # Time the LLM call with a scoped log
+    with log_context(
+        logger,
+        event="chain_invoke",
+        model=model,
+        temperature=temperature,
+    ):
+        try:
+            # IMPORTANT: pass the variable name that your prompt expects (trip_context)
+            return await chain.ainvoke({"question": message, "trip_context": context})
+        except Exception as exc:  
+            logger.exception("Error during chain invocation for message=%s: %s", message, exc)
+            log_with_id(
+                logger,
+                level=logging.ERROR,  
+                event="chain_invoke_error",
+                model=model,
+                temperature=temperature,
+                err=str(exc),
+            )
+            raise RuntimeError(
+                f"Chat response generation failed (model={model}, temp={temperature})"
+            ) from exc
 
 if __name__ == "__main__":
     import sys
