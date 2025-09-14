@@ -59,20 +59,20 @@ async def load_trip_context(path_str: Optional[str] = None) -> str:
         The file contents as a string, or an empty string if not found / not provided.
     """
     if not path_str:   
-        logger.warning(f"No trip_context_path provided; continuing with empty context")
+        logger.warning("No trip_context_path provided; continuing with empty context")
         return ""
     
     p = Path(path_str)
 
     if not p.exists():
-        logger.warning(f"Trip context file not found at {p}")
+        logger.warning("Trip context file not found at %s", p)
         return ""
-    logger.debug(f"Loading trip context from {p}")
+    logger.debug("Loading trip context from %s", p)
 
     try:
         return await asyncio.to_thread(p.read_text(encoding="utf-8"))
-    except Exception as e:
-        logger.exception(f"Failed reading trip context at {p}: {e}")
+    except Exception as exc:
+        logger.exception("Failed reading trip context at %s: %s", p, exc, exc_info=True)
         return "" 
         
 @lru_cache(maxsize=8)    
@@ -84,11 +84,13 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
         - system_prompt, model, and temperature are hashable; this enables simple caching.
         - If you rotate keys or change prompts frequently, consider a more explicit cache.
     """
-    msg = (
-        f"Building (or returning cached) chain: model={model}, "
-        f"temperature={temperature}, prompt_hash={hash(system_prompt)}"
+
+    logger.debug(
+        "Building (or returning cached) chain: model=%s, temperature=%s, prompt_hash=%s",
+        model, 
+        temperature,
+        hash(system_prompt),
     )
-    logger.debug(msg)
     
     return build_question_chain(
         system_prompt=system_prompt,
@@ -158,7 +160,7 @@ async def get_chat_response(
     preview = (message or "").strip().replace("\n", " ")
     if len(preview) > 80:
         preview = preview[:77] + '...'
-    logger.info(f"Generating chat response (preview={preview})")
+    logger.info("Generating chat response (preview=%s)", preview)
 
     resolved_path = _resolve_trip_path(trip_context_path)
     context = await load_trip_context(resolved_path)
@@ -171,12 +173,12 @@ async def get_chat_response(
 
     try:
         return await chain.ainvoke({"question": message, "context": context})
-    except Exception as e:
-        logger.exception(f"Error during chain invocation for message={message}: {e}")
+    except Exception as exc:
+        logger.exception("Error during chain invocation for message=%s: %s", message, exc)
         error_msg = (
             f"Chat response generation failed (model={model}, temp={temperature})"
         )
-        raise RuntimeError(error_msg) from e
+        raise RuntimeError(error_msg) from exc
 
 if __name__ == "__main__":
     import sys
