@@ -12,16 +12,23 @@ TODO(memory, Pass 2): introduce a ChatHistoryRepo interface:
 Then wire it here (not in llm_chains.py) to keep concerns separated.
 """
 
+from __future__ import annotations
+
 import asyncio
-import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Tuple
 
 from app.config import settings
 from app.chatbot.llm_chains import build_question_chain
+from app.logging_utils import (
+    get_logger,
+    log_with_id,
+    log_context,
+    truncate_msg,
+)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are a chatbot for a travel app that answers questions about the travel itinerary. "
