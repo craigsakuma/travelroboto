@@ -1,0 +1,89 @@
+[project]
+name = "travelroboto"
+version = "0.1.0"
+requires-python = ">=3.11.7"
+description = "AI-powered travel assistant"
+readme = "README.md"
+
+# --- Core runtime dependencies ---
+dependencies = [
+    # Core web framework
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "jinja2>=3.1.4",
+    "python-multipart>=0.0.9",
+
+    # Data handling and validation
+    "pandas>=2.2.2",
+    "pydantic>=2.9.2",
+    "pydantic-settings>=2.4.0",
+    "psycopg2-binary>=2.9",   # Postgres sync driver (admin/migrations)
+    "asyncpg>=0.29.0",        # Async Postgres for FastAPI services
+
+    # Google Gmail API
+    "google-api-python-client==2.176.0",
+    "google-auth==2.31.0",
+    "google-auth-httplib2==0.2.0",
+    "google-auth-oauthlib==1.2.2",
+
+    # HTML parsing
+    "beautifulsoup4==4.12.3",
+
+    # LangChain + OpenAI
+    "langchain==0.2.10",
+    "langchain-openai==0.1.17",
+    "langchain-core==0.2.22",
+    "openai>=1.35.0",
+]
+
+# --- Optional extras (install with: pip install .[dev]) ---
+[project.optional-dependencies]
+dev = [
+    # Jupyter (local dev only)
+    "notebook>=7.2.2",
+
+    # Testing
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+]
+
+[tool.ruff]
+exclude = [
+    ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg",
+    ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d", ".pyenv",
+    ".pytest_cache", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv",
+    ".vscode", "__pypackages__", "_build", "buck-out", "build", "dist",
+    "node_modules", "site-packages", "venv"
+]
+line-length = 99
+indent-width = 4
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+strict_optional = true
+warn_unused_ignores = true
