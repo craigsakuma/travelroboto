@@ -83,7 +83,7 @@ def get_logger(name: str) -> logging.Logger:
 
 def log_with_id(
     logger: logging.Logger,
-    level: int,
+    level: int | str,
     message: str,
     *,
     request_id: str | None = None,
@@ -98,6 +98,14 @@ def log_with_id(
     - Uses `logger.log(level, ...)` so you can pass logging.INFO, logging.ERROR, etc.
     """
     rid = request_id if request_id is not None else get_request_id()
+
+    # Normalize level: allow both logging.DEBUG or "DEBUG"
+    if isinstance(level, str):
+        try:
+            level = getattr(logging, level.upper())
+        except AttributeError:
+            logger.warning("Unknown log level %r, defaulting to INFO", level)
+            level = logging.INFO
 
     reserved = {
         "name", "msg", "args", "levelname", "levelno", "pathname",
