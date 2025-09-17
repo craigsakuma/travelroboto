@@ -25,10 +25,11 @@ from typing import Any
 
 from fastapi import FastAPI, APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse, HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
+from starlette.responses import FileResponse, Response
 from starlette.status import (
     HTTP_200_OK,
     HTTP_422_UNPROCESSABLE_ENTITY,
@@ -63,10 +64,10 @@ WEBMANIFEST_PATH: Path = settings.webmanifest_path
 IS_PROD = settings.app_env == "production"
 
 CACHE_ONE_YEAR = "public, max-age=31536000, immutable"
-CACHE_ONE_DAY  = "public, max-age=86400"
-NO_STORE       = "no-store"
+CACHE_ONE_DAY = "public, max-age=86400"
+NO_STORE = "no-store"
 
-FAVICON_HEADERS: dict[str, str]  = (
+FAVICON_HEADERS: dict[str, str] = (
     {"Cache-Control": CACHE_ONE_YEAR} if IS_PROD else {"Cache-Control": NO_STORE}
 )
 MANIFEST_HEADERS: dict[str, str] = (
@@ -77,14 +78,17 @@ MANIFEST_HEADERS: dict[str, str] = (
 # Models
 # -----------------------------------------------------------------------------
 
+
 class ChatRequest(BaseModel):
     """Request payload for the /chat endpoint."""
+
     message: str
 
 
 # -----------------------------------------------------------------------------
 # Web (HTML) routes
 # -----------------------------------------------------------------------------
+
 
 @web_router.get("/", response_class=HTMLResponse, status_code=HTTP_200_OK)
 async def home(request: Request) -> HTMLResponse:
@@ -93,8 +97,9 @@ async def home(request: Request) -> HTMLResponse:
         templates: Jinja2Templates = request.app.state.templates  # app-scoped
         return templates.TemplateResponse("chat.html", {"request": request})
 
+
 @web_router.get("/favicon.ico", include_in_schema=False)
-async def favicon_ico() -> FileResponse | Response:
+async def favicon_ico() -> Response:
     """Serve /favicon.ico or 204 if missing."""
     if FAVICON_PATH.exists():
         # Optional caching:
@@ -102,17 +107,21 @@ async def favicon_ico() -> FileResponse | Response:
         return FileResponse(FAVICON_PATH, headers=FAVICON_HEADERS)
     return Response(status_code=204)
 
+
 @web_router.get("/site.webmanifest", include_in_schema=False)
-async def site_webmanifest() -> FileResponse | Response:
+async def site_webmanifest() -> Response:
     """Serve PWA manifest from configured path."""
     if WEBMANIFEST_PATH.exists():
-        return FileResponse(WEBMANIFEST_PATH, media_type="application/manifest+json", headers=MANIFEST_HEADERS)
+        return FileResponse(
+            WEBMANIFEST_PATH, media_type="application/manifest+json", headers=MANIFEST_HEADERS
+        )
     return Response(status_code=204)
 
 
 # -----------------------------------------------------------------------------
 # API (JSON) routes
 # -----------------------------------------------------------------------------
+
 
 @api_router.get("/healthz")
 async def healthz() -> dict[str, str]:
@@ -134,15 +143,17 @@ async def chat_endpoint(payload: ChatRequest) -> dict[str, Any]:
     with log_context(logger, "chat_api", input_len=len(message)):
         # Avoid logging full payloads at higher levels; short preview in DEBUG only.
         log_with_id(
-            logger, 
-            logging.DEBUG, 
+            logger,
+            logging.DEBUG,
             "chat_input_preview",
             preview=truncate_msg(message, 300),
         )
         result = get_chat_response(message)
         reply = await _maybe_await(result)
         log_with_id(
-            logger, logging.DEBUG, "chat_reply_preview",
+            logger,
+            logging.DEBUG,
+            "chat_reply_preview",
             preview=truncate_msg(str(reply), 300),
         )
         return {"reply": reply}
@@ -154,13 +165,17 @@ async def sms_webhook(request: Request) -> dict[str, Any]:
     with log_context(logger, "sms_webhook"):
         message = await _extract_message(request)
         log_with_id(
-            logger, logging.DEBUG, "sms_input_preview",
+            logger,
+            logging.DEBUG,
+            "sms_input_preview",
             preview=truncate_msg(message, 300),
         )
         result = get_chat_response(message)
         reply = await _maybe_await(result)
         log_with_id(
-            logger, logging.DEBUG, "sms_reply_preview",
+            logger,
+            logging.DEBUG,
+            "sms_reply_preview",
             preview=truncate_msg(str(reply), 300),
         )
         return {"reply": reply}
@@ -170,9 +185,10 @@ async def sms_webhook(request: Request) -> dict[str, Any]:
 # Middleware
 # -----------------------------------------------------------------------------
 
+
 def _register_middlewares(app: FastAPI) -> None:
     """Register request correlation and access-timing middleware."""
-    
+
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
         """Propagate a correlation ID for the lifetime of the request."""
@@ -197,20 +213,20 @@ def _register_middlewares(app: FastAPI) -> None:
             status = response.status_code
             elapsed_ms = (time.perf_counter() - start) * 1000.0
             log_with_id(
-                logger, 
-                logging.INFO, 
+                logger,
+                logging.INFO,
                 f"{method} {path}",
-                status_code=status, 
+                status_code=status,
                 elapsed_ms=round(elapsed_ms, 2),
             )
             return response
         except Exception as exc:
             elapsed_ms = (time.perf_counter() - start) * 1000.0
             log_with_id(
-                logger, 
-                logging.ERROR, 
+                logger,
+                logging.ERROR,
                 f"{method} {path} raised",
-                elapsed_ms=round(elapsed_ms, 2), 
+                elapsed_ms=round(elapsed_ms, 2),
                 exc_type=type(exc).__name__,
             )
             raise
@@ -220,12 +236,14 @@ def _register_middlewares(app: FastAPI) -> None:
 # Exception handlers
 # -----------------------------------------------------------------------------
 
+
 def _register_exception_handlers(app: FastAPI) -> None:
     """Attach global exception handlers for validation and unhandled errors.
 
     Standardizes client responses and ensures server logs include correlation
     metadata (request_id, path, opaque error_id) for production triage.
     """
+
     @app.exception_handler(RequestValidationError)
     async def _validation_error_handler(request: Request, exc: RequestValidationError):
         """Return a concise 422 with structured validation details.
@@ -233,8 +251,8 @@ def _register_exception_handlers(app: FastAPI) -> None:
         Logs at WARNING (client error) with the request path and error count.
         Does not log raw request bodies to avoid leaking sensitive input.
         """
-        rid = get_request_id()
-        errors = exc.errors()  
+        rid = get_request_id() or new_request_id()
+        errors = exc.errors()
         log_with_id(
             logger,
             logging.WARNING,
@@ -259,7 +277,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
           with server logs.
         - Hides internal details from clients.
         """
-        rid = get_request_id()
+        rid = get_request_id() or new_request_id()
         error_id = str(uuid.uuid4())[:8]  # short ID to find the matching log line
 
         # logger.exception captures stack trace automatically
@@ -274,12 +292,15 @@ def _register_exception_handlers(app: FastAPI) -> None:
             "request_id": rid,
             "error_id": error_id,
         }
-        return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR, content=payload)
-    
+        resp = JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR, content=payload)
+        resp.headers["X-Request-ID"] = rid
+        return resp
+
 
 # -----------------------------------------------------------------------------
 # Lifespan
 # -----------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -297,6 +318,7 @@ async def lifespan(app: FastAPI):
 # App factory
 # -----------------------------------------------------------------------------
 
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application for the web UI.
 
@@ -308,19 +330,21 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(
         title="Chatbot Web Interface",
-        version='0.1.0',
+        version="0.1.0",
         lifespan=lifespan,
     )
-    
+
     # App-scoped Jinja environment (config-driven; easy to override in tests/sub-apps).
     app.state.templates = Jinja2Templates(directory=str(settings.templates_dir))
-    
+
     # Mount static assets via configuration (supports env/test overrides).
-    app.mount("/static", StaticFiles(directory=str(settings.static_dir), check_dir=True), name="static")
+    app.mount(
+        "/static", StaticFiles(directory=str(settings.static_dir), check_dir=True), name="static"
+    )
 
     _register_middlewares(app)
     _register_exception_handlers(app)
-    
+
     # Attach routers (HTML at "/", JSON under "/api").
     app.include_router(web_router)
     app.include_router(api_router)
@@ -331,6 +355,7 @@ def create_app() -> FastAPI:
 # -----------------------------------------------------------------------------
 # Internal helpers
 # -----------------------------------------------------------------------------
+
 
 async def _extract_message(request: Request) -> str:
     """Extract a text message from JSON or form-encoded requests."""
