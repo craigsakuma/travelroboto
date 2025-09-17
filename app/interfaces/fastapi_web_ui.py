@@ -20,11 +20,12 @@ import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
@@ -56,6 +57,21 @@ logger = get_logger(__name__)
 web_router = APIRouter()
 api_router = APIRouter(prefix="/api")
 
+FAVICON_PATH: Path = settings.favicon_path
+WEBMANIFEST_PATH: Path = settings.webmanifest_path
+
+IS_PROD = settings.app_env == "production"
+
+CACHE_ONE_YEAR = "public, max-age=31536000, immutable"
+CACHE_ONE_DAY  = "public, max-age=86400"
+NO_STORE       = "no-store"
+
+FAVICON_HEADERS: dict[str, str]  = (
+    {"Cache-Control": CACHE_ONE_YEAR} if IS_PROD else {"Cache-Control": NO_STORE}
+)
+MANIFEST_HEADERS: dict[str, str] = (
+    {"Cache-Control": CACHE_ONE_DAY} if IS_PROD else {"Cache-Control": NO_STORE}
+)
 
 # -----------------------------------------------------------------------------
 # Models
@@ -76,6 +92,22 @@ async def home(request: Request) -> HTMLResponse:
     with log_context(logger, "render_home"):
         templates: Jinja2Templates = request.app.state.templates  # app-scoped
         return templates.TemplateResponse("chat.html", {"request": request})
+
+@web_router.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico() -> FileResponse | Response:
+    """Serve /favicon.ico or 204 if missing."""
+    if FAVICON_PATH.exists():
+        # Optional caching:
+        # return FileResponse(FAVICON_PATH, headers={"Cache-Control": "public, max-age=31536000"})
+        return FileResponse(FAVICON_PATH, headers=FAVICON_HEADERS)
+    return Response(status_code=204)
+
+@web_router.get("/site.webmanifest", include_in_schema=False)
+async def site_webmanifest() -> FileResponse | Response:
+    """Serve PWA manifest from configured path."""
+    if WEBMANIFEST_PATH.exists():
+        return FileResponse(WEBMANIFEST_PATH, media_type="application/manifest+json", headers=MANIFEST_HEADERS)
+    return Response(status_code=204)
 
 
 # -----------------------------------------------------------------------------
@@ -202,7 +234,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         Does not log raw request bodies to avoid leaking sensitive input.
         """
         rid = get_request_id()
-        errors = exc.errors()  # structured list provided by FastAPI
+        errors = exc.errors()  
         log_with_id(
             logger,
             logging.WARNING,
