@@ -30,6 +30,14 @@ ENV/
 *.swp
 *.swo
 *.DS_Store
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# ================================
+# Build & Packaging Artifacts
+# ================================
+build/
+dist/
 *.egg-info/
 
 # ================================
@@ -37,6 +45,16 @@ ENV/
 # ================================
 .ipynb_checkpoints/
 .virtual_documents/
+
+# ================================
+# Linters, Type Checkers, Test Caches
+# ================================
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.pytest_cache/
+.tox/
+.nox/
 
 # ================================
 # Data and Models
@@ -62,6 +80,11 @@ credentials.json
 credentials/
 
 # ================================
+# Frontend
+# ================================
+node_modules/
+
+# ================================
 # OS Files
 # ================================
 Thumbs.db
@@ -80,9 +103,9 @@ logs/
 # Testing
 # ================================
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
-.tox/
 nosetests.xml
 test-output/
-.pytest_cache/
 .gradio
