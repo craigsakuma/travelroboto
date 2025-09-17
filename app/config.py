@@ -3,16 +3,18 @@ Configuration settings for the TravelBot project.
 
 """
 from __future__ import annotations
+
 from pathlib import Path
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 from typing import Literal
+
+from pydantic import Field, SecretStr, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent  
 
 class Settings(BaseSettings):
     # --- App ---
-    app_env: str = Field(default="development")
+    app_env: Literal["development", "test", "production"] = Field(default="development")
 
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
@@ -29,24 +31,41 @@ class Settings(BaseSettings):
         description="Directory containing static assets",
     )
 
+    icons_dir: Path | None = None
+    favicon_filename: str = "favicon.ico"
+    manifest_filename: str = "site.webmanifest"
+
+    @property
+    def resolved_icons_dir(self) -> Path:
+        return self.icons_dir or (self.static_dir / "icons")
+
+    @property
+    def favicon_path(self) -> Path:
+        return self.resolved_icons_dir / self.favicon_filename
+
+    @property
+    def webmanifest_path(self) -> Path:
+        return self.resolved_icons_dir / self.manifest_filename
+
     # --- LLM ---
-    openai_api_key: str | None = None
+    openai_api_key: SecretStr | None = None
 
     # --- Trip context (dev shim) ---
     trip_context_path: str = "tests/test_data/test_itinerary.txt"
 
     # --- Twilio (SMS) ---
-    twilio_account_sid: str = Field(default="", description="Twilio Account SID")
-    twilio_auth_token: str = Field(default="", description="Twilio Auth Token")
+    twilio_account_sid: SecretStr | None = None
+    twilio_auth_token: SecretStr | None = None
+
 
     # --- Gmail OAuth ---
     travelbot_gmail_client_id: str = Field(default="", description="Google API client ID")
-    travelbot_gmail_client_secret: str = Field(default="", description="Google API client secret")
+    travelbot_gmail_client_secret: SecretStr | None = None
 
     # --- Gmail local files ---
     credentials_dir: Path = BASE_DIR / "credentials"
     gmail_token_file: Path = credentials_dir / "token.json"
-    scopes: list[str] = ["https://www.googleapis.com/auth/gmail.readonly"]
+    scopes: tuple[str, ...] = ["https://www.googleapis.com/auth/gmail.readonly"]
 
     # --- Database (minimal: two URLs + a toggle) ---
     database_url_external: str | None = None  # public URL for local dev
@@ -59,6 +78,21 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # --- Convenience flags / mappings ---
+    @property
+    def is_prod(self) -> bool:
+        return self.app_env == "production"
+
+    @property
+    def is_dev(self) -> bool:
+        return self.app_env == "development"
+
+    @property
+    def log_level_int(self) -> int:
+        """Return stdlib logging level as int (e.g., logging.INFO)."""
+        import logging
+        return getattr(logging, self.log_level, logging.INFO)
+    
     @property
     def database_url_sync(self) -> str | None:
         """Return the chosen sync URL (psycopg2)."""
