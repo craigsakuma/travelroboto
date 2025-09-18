@@ -1,0 +1,6 @@
+TravelRoboto
+uvicorn
+pydantic
+FastAPI
+asyncio
+pytest
