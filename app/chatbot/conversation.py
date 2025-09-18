@@ -18,14 +18,14 @@ import asyncio
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
-from app.config import settings
 from app.chatbot.llm_chains import build_question_chain
-from app.logging_utils import (  
+from app.config import settings
+from app.logging_utils import (
     get_logger,
-    log_with_id,
     log_context,
+    log_with_id,
     truncate_msg,
 )
 
@@ -42,6 +42,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "and include URLs when relevant.\n\n"
     "Trip itinerary:\n```{trip_context}```"
 )
+
 
 def _resolve_trip_path(override: Optional[str]) -> Optional[str]:
     """
@@ -66,31 +67,39 @@ async def load_trip_context(path_str: Optional[str] = None) -> str:
     Returns:
         The file contents as a string, or an empty string if not found / not provided.
     """
-    if not path_str:   
-        logger.warning(f"No trip_context_path provided; continuing with empty context")
-        return ""
-    
-    p = Path(path_str)
-    if not p.exists():
-        log_with_id(logger, level=logging.WARNING, event="trip_context_not_found", path=str(p))  
+    if not path_str:
+        logger.warning("No trip_context_path provided; continuing with empty context")
         return ""
 
-    log_with_id(logger, level=logging.DEBUG, event="trip_context_load", path=str(p))  
+    p = Path(path_str)
+    if not p.exists():
+        log_with_id(
+            logger,
+            level=logging.WARNING,
+            message="Trip context file not found",
+            event="trip_context_not_found",
+            path=str(p),
+        )
+        return ""
+
+    log_with_id(logger, level=logging.DEBUG, message="Failed to read trip context file",
+event="trip_context_load", path=str(p))
     try:
-        return await asyncio.to_thread(p.read_text(encoding="utf-8"))
+        return await asyncio.to_thread(p.read_text, encoding="utf-8")
     except Exception as exc:
         logger.exception("Failed reading trip context at %s: %s", p, exc)
         log_with_id(
             logger,
             level=logging.ERROR,
+            message="Loading trip context file",
             event="trip_context_read_failed",
             path=str(p),
             error=str(exc),
         )
         return ""
 
-        
-@lru_cache(maxsize=8)    
+
+@lru_cache(maxsize=8)
 def _get_cached_chain(system_prompt: str, model: str, temperature: float):
     """
     Build (or reuse) a question chain keyed by its main configuration.
@@ -102,6 +111,7 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
     log_with_id(
         logger,
         level=logging.DEBUG,
+        message="Building or reusing cached chain",
         event="chain_cache_build",
         model=model,
         temperature=temperature,
@@ -112,6 +122,7 @@ def _get_cached_chain(system_prompt: str, model: str, temperature: float):
         model=model,
         temperature=temperature,
     )
+
 
 def dump_chain_cache_stats() -> str:
     """
@@ -124,12 +135,8 @@ def dump_chain_cache_stats() -> str:
         str: formatted stats string (e.g. "hits=5 misses=2 currsize=3 maxsize=8")
     """
     info = _get_cached_chain.cache_info()
-    return (
-        f"hits={info.hits} "
-        f"misses={info.misses} "
-        f"currsize={info.currsize} "
-        f"maxsize={info.maxsize}"
-    )
+    return f"hits={info.hits} misses={info.misses} currsize={info.currsize} maxsize={info.maxsize}"
+
 
 def clear_chain_cache() -> None:
     """
@@ -144,13 +151,13 @@ def clear_chain_cache() -> None:
 
 
 async def get_chat_response(
-        message: str,
-        *,
-        model: str = "gpt-4o-mini", 
-        temperature: float = 0.2,
-        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-        trip_context_path: Optional[str] = None    
-) -> Tuple[str, str]:
+    message: str,
+    *,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.2,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    trip_context_path: Optional[str] = None,
+) -> str:
     """
     Stateless ask: build/reuse the chain and call LLM with provided message + optional context.
 
@@ -167,39 +174,36 @@ async def get_chat_response(
     Raises:
         ValueError: If `message` is empty/whitespace.
         RuntimeError: If LLM invocation fails.
-    """    
+    """
     if not message or not message.strip():
-        log_with_id(logger, level=logging.ERROR, event="chat_empty_message") 
+        log_with_id(logger, level=logging.ERROR, message="Received empty chat message", event="chat_empty_message")
         raise ValueError("Message must not be empty")
-    
+
     preview_base = (message or "").strip().replace("\n", " ")
     preview = truncate_msg(preview_base, max_length=80)
-    log_with_id(logger, level=logging.INFO, event="chat_generate", preview=preview)
+    log_with_id(logger, level=logging.INFO, message="Generating chat response", event="chat_generate", preview=preview)
 
     resolved_path = _resolve_trip_path(trip_context_path)
     context = await load_trip_context(resolved_path)
 
-    chain = _get_cached_chain(
-        system_prompt=system_prompt,
-        model=model,
-        temperature=temperature
-    )
+    chain = _get_cached_chain(system_prompt=system_prompt, model=model, temperature=temperature)
 
     # Time the LLM call with a scoped log
     with log_context(
         logger,
-        event="chain_invoke",
+        label="chain_invoke",
         model=model,
         temperature=temperature,
     ):
         try:
             # IMPORTANT: pass the variable name that your prompt expects (trip_context)
             return await chain.ainvoke({"question": message, "trip_context": context})
-        except Exception as exc:  
+        except Exception as exc:
             logger.exception("Error during chain invocation for message=%s: %s", message, exc)
             log_with_id(
                 logger,
-                level=logging.ERROR,  
+                level=logging.ERROR,
+                message="Error during chain invocation",
                 event="chain_invoke_error",
                 model=model,
                 temperature=temperature,
@@ -208,6 +212,7 @@ async def get_chat_response(
             raise RuntimeError(
                 f"Chat response generation failed (model={model}, temp={temperature})"
             ) from exc
+
 
 if __name__ == "__main__":
     import sys
@@ -220,7 +225,7 @@ if __name__ == "__main__":
         except Exception as err:
             print(f"[error] {err}", file=sys.stderr)
             sys.exit(1)
-    
+
     asyncio.run(_demo())
 
 # TODO(memory): In Phase 2, introduce a HistoryRepo interface:
