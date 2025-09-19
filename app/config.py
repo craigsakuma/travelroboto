@@ -2,6 +2,7 @@
 Configuration settings for the TravelBot project.
 
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,7 +11,8 @@ from typing import Literal
 from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parent.parent  
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 class Settings(BaseSettings):
     # --- App ---
@@ -57,7 +59,6 @@ class Settings(BaseSettings):
     twilio_account_sid: SecretStr | None = None
     twilio_auth_token: SecretStr | None = None
 
-
     # --- Gmail OAuth ---
     travelbot_gmail_client_id: str = Field(default="", description="Google API client ID")
     travelbot_gmail_client_secret: SecretStr | None = None
@@ -65,12 +66,12 @@ class Settings(BaseSettings):
     # --- Gmail local files ---
     credentials_dir: Path = BASE_DIR / "credentials"
     gmail_token_file: Path = credentials_dir / "token.json"
-    scopes: tuple[str, ...] = ["https://www.googleapis.com/auth/gmail.readonly"]
+    scopes: tuple[str, ...] = ("https://www.googleapis.com/auth/gmail.readonly",)
 
     # --- Database (minimal: two URLs + a toggle) ---
     database_url_external: str | None = None  # public URL for local dev
     database_url_internal: str | None = None  # internal URL for Railway
-    use_internal_db: bool = False             # set to true on Railway
+    use_internal_db: bool = False  # set to true on Railway
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -91,8 +92,9 @@ class Settings(BaseSettings):
     def log_level_int(self) -> int:
         """Return stdlib logging level as int (e.g., logging.INFO)."""
         import logging
+
         return getattr(logging, self.log_level, logging.INFO)
-    
+
     @property
     def database_url_sync(self) -> str | None:
         """Return the chosen sync URL (psycopg2)."""
@@ -112,7 +114,8 @@ class Settings(BaseSettings):
         if url.startswith("postgresql://"):
             return url.replace("postgresql://", "postgresql+asyncpg://")
         return url  # already async or custom
-        
+
+
 # Create a single importable instance
 try:
     settings = Settings()
