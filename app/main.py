@@ -31,7 +31,7 @@ def configure_logging() -> None:
 
     # Build a formatter that includes request_id.
     formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)s | %(name)s | %(request_id)s | %(message)s",
+        fmt="%(asctime)s | %(levelname)s | %(name)s.%(funcName)s | %(request_id)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -53,6 +53,7 @@ configure_logging()
 
 if __name__ == "__main__":
     import os
+
     import uvicorn
 
     port = int(os.getenv("PORT", "8000"))
