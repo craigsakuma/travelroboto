@@ -23,11 +23,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, APIRouter, Request, HTTPException
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, FastAPI, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.responses import FileResponse, Response
 from starlette.status import (
@@ -40,11 +40,11 @@ from app.chatbot.conversation import get_chat_response
 from app.config import settings
 from app.logging_utils import (
     get_logger,
+    get_request_id,
+    log_context,
+    log_with_id,
     new_request_id,
     set_request_id,
-    get_request_id,
-    log_with_id,
-    log_context,
     truncate_msg,
 )
 
@@ -371,7 +371,12 @@ async def _extract_message(request: Request) -> str:
     # Form body (e.g., application/x-www-form-urlencoded, multipart/form-data)
     if "application/x-www-form-urlencoded" in ctype or "multipart/form-data" in ctype:
         form = await request.form()
-        msg = (form.get("message") or form.get("body") or form.get("Body") or "").strip()
+        value = form.get("message") or form.get("body") or form.get("Body") or ""
+        if isinstance(value, UploadFile):
+            content = await value.read()
+            msg = content.decode('utf-8').strip()
+        else:
+            msg = str(value).strip()
         if msg:
             return msg
 
