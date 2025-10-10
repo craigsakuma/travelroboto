@@ -8,23 +8,24 @@ Provides thin wrappers around LangChain primitives to:
 """
 
 from __future__ import annotations
+
 import logging
 import math
 
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
+from langchain_openai import ChatOpenAI
 
 from app.config import settings
 from app.logging_utils import (
-    get_logger, 
-    log_context, 
-    log_with_id, 
+    get_logger,
+    log_context,
+    log_with_id,
     truncate_msg,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_llm(
@@ -40,7 +41,7 @@ def get_llm(
     Raises:
         RuntimeError: if OPENAI_API_KEY is unset.
         ValueError: if temperature is not within [0.0, 2.0].
-    """    
+    """
     if not settings.openai_api_key:
         log_with_id(logger, logging.ERROR, "missing_api_key")
         raise RuntimeError("OPENAI_API_KEY is not set. Configure it in Railway or your .env.")
@@ -80,8 +81,8 @@ def get_prompt(system_prompt: str) -> ChatPromptTemplate:
     """
     if not isinstance(system_prompt, str) or not system_prompt.strip():
         raise ValueError("system_prompt must not be empty")
-    
-    sys_prompt = system_prompt.strip()  
+
+    sys_prompt = system_prompt.strip()
     log_with_id(
         logger,
         logging.DEBUG,
