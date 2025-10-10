@@ -13,25 +13,24 @@ Functions:
     get_latest_email_id(client: Optional[googleapiclient.discovery.Resource]) -> Optional[str]:
         Returns the message ID of the most recent email.
 
-    extract_gmail_as_json(service: googleapiclient.discovery.Resource, message_id: str) -> Dict[str, Optional[str]]:
+    extract_gmail_as_json(service: googleapiclient.discovery.Resource, message_id: str) -> dict[str, Optional[str]]:
         Extracts email metadata and body text as structured JSON.
 """
+
 # Standard library
 import base64
-import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Third-party
 from bs4 import BeautifulSoup
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build, Resource
-from googleapiclient.errors import HttpError
-from google.auth.transport.requests import Request
+from googleapiclient.discovery import Resource, build
 
 # Local application
 from app.config import settings
+from app.utils.secrets import secret_to_str
 
 
 def get_gmail_service() -> Resource:
@@ -46,9 +45,7 @@ def get_gmail_service() -> Resource:
 
     # Load saved credentials if available
     if settings.gmail_token_file.exists():
-        creds = Credentials.from_authorized_user_file(
-            settings.gmail_token_file, settings.scopes
-        )
+        creds = Credentials.from_authorized_user_file(settings.gmail_token_file, settings.scopes)
 
     # If no valid credentials, run OAuth flow
     if not creds or not creds.valid:
@@ -58,7 +55,7 @@ def get_gmail_service() -> Resource:
             client_config = {
                 "installed": {
                     "client_id": settings.travelbot_gmail_client_id,
-                    "client_secret": settings.travelbot_gmail_client_secret,
+                    "client_secret": secret_to_str(settings.travelbot_gmail_client_secret),
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": ["http://localhost"],
@@ -74,13 +71,15 @@ def get_gmail_service() -> Resource:
     return build("gmail", "v1", credentials=creds)
 
 
-def get_inbox_email_ids(client: Optional[Resource] = None, max_results: Optional[int] = 10) -> Optional[str]:
+def get_inbox_email_ids(
+    client: Resource | None = None, max_results: int | None = 10
+) -> list[str] | None:
     """
     Retrieve message IDs from the user's Gmail inbox.
 
     Args:
         service (object): Authorized Gmail API service instance.
-        max_results (int, optional): Maximum number of email IDs to retrieve. 
+        max_results (int, optional): Maximum number of email IDs to retrieve.
             Defaults to 100 to limit API requests.
 
     Returns:
@@ -96,10 +95,10 @@ def get_inbox_email_ids(client: Optional[Resource] = None, max_results: Optional
         print("No messages found.")
         return None
 
-    return [m['id'] for m in messages]
+    return [m["id"] for m in messages]
 
 
-def extract_gmail_as_json(service: Resource, message_id: str) -> Dict[str, Optional[str]]:
+def extract_gmail_as_json(service: Resource, message_id: str) -> dict[str, str | None]:
     """
     Extract email metadata and body content from Gmail and return as a dictionary.
 
@@ -108,9 +107,9 @@ def extract_gmail_as_json(service: Resource, message_id: str) -> Dict[str, Optio
         message_id (str): Gmail message ID.
 
     Returns:
-        Dict[str, Optional[str]]: Dictionary containing email metadata and body text.
+        dict[str, Optional[str]]: Dictionary containing email metadata and body text.
     """
-    msg: Dict[str, Any] = (
+    msg: dict[str, Any] = (
         service.users().messages().get(userId="me", id=message_id, format="full").execute()
     )
 
