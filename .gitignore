@@ -20,6 +20,7 @@ ENV/
 *.env
 *.venv
 .env
+uv.lock
 
 # ================================
 # IDEs & Editors
@@ -78,6 +79,7 @@ secrets.json
 token.json
 credentials.json
 credentials/
+pyproject.toml
 
 # ================================
 # Frontend
