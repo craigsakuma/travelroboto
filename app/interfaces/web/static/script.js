@@ -11,7 +11,8 @@ function appendMessage(role, text) {
   div.className = `message ${role}-message`;
   div.textContent = text;
   chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  div.scrollIntoView({ block: "end" });
+  chatBox.scrollTop = chatBox.scrollHeight; // fallback
 }
 
 function setPending(isPending) {
@@ -39,7 +40,10 @@ form.addEventListener("submit", async (e) => {
     const reqId = res.headers.get("X-Request-ID");
 
     if (!res.ok) {
-      appendMessage("sys", `Error ${res.status}${reqId ? ` (rid ${reqId})` : ""}`);
+      appendMessage(
+        "sys",
+        `Error ${res.status}${reqId ? ` (rid ${reqId})` : ""}`
+      );
       console.error("Chat error:", res.status, await safeText(res));
       return;
     }
@@ -59,5 +63,9 @@ form.addEventListener("submit", async (e) => {
 });
 
 async function safeText(response) {
-  try { return await response.text(); } catch { return ""; }
+  try {
+    return await response.text();
+  } catch {
+    return "";
+  }
 }
