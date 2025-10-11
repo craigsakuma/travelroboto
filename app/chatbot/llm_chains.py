@@ -24,6 +24,7 @@ from app.logging_utils import (
     log_with_id,
     truncate_msg,
 )
+from app.utils.secrets import secret_to_str
 
 logger = get_logger(__name__)
 
@@ -42,7 +43,7 @@ def get_llm(
         RuntimeError: if OPENAI_API_KEY is unset.
         ValueError: if temperature is not within [0.0, 2.0].
     """
-    if not settings.openai_api_key:
+    if not secret_to_str(settings.openai_api_key):
         log_with_id(logger, logging.ERROR, "missing_api_key")
         raise RuntimeError("OPENAI_API_KEY is not set. Configure it in Railway or your .env.")
 
@@ -65,7 +66,7 @@ def get_llm(
         return ChatOpenAI(
             model=model,
             temperature=temperature,
-            api_key=settings.openai_api_key,
+            api_key=secret_to_str(settings.openai_api_key),
             timeout=timeout,
             max_retries=max_retries,
         )
