@@ -1,38 +1,14 @@
 # ================================
-# Python
+# Project Snapshots
 # ================================
-__pycache__/
-*.py[cod]
-*.so
-*.pyd
-*.pyo
-*.log
-*.bak
-
-# ================================
-# Virtual Environment
-# ================================
-venv/
-env/
-ENV/
-.venv/
-.ENV/
-*.env
-*.venv
-.env
-uv.lock
-
-# ================================
-# IDEs & Editors
-# ================================
-.vscode/
-.virtual_documents/
-.idea/
-*.swp
-*.swo
-*.DS_Store
-!.vscode/settings.json
-!.vscode/extensions.json
+# These are ignored during active development to avoid noisy commits.
+# They will be force-added at milestones (e.g., alpha snapshot).
+/pyproject.toml
+/.cspell/
+.vscode/*
+# !.vscode/
+# !.vscode/settings.json
+# !.vscode/extensions.json
 
 # ================================
 # Build & Packaging Artifacts
@@ -42,20 +18,13 @@ dist/
 *.egg-info/
 
 # ================================
-# Jupyter Notebooks
+# Configuration & Secrets
 # ================================
-.ipynb_checkpoints/
-.virtual_documents/
-
-# ================================
-# Linters, Type Checkers, Test Caches
-# ================================
-.ruff_cache/
-.mypy_cache/
-.pytype/
-.pytest_cache/
-.tox/
-.nox/
+config.yaml
+credentials/
+credentials.json
+secrets.json
+token.json
 
 # ================================
 # Data and Models
@@ -72,26 +41,34 @@ data/*.csv
 data/*.json
 
 # ================================
-# Configuration & Secrets
-# ================================
-config.yaml
-secrets.json
-token.json
-credentials.json
-credentials/
-pyproject.toml
-
-# ================================
 # Frontend
 # ================================
 node_modules/
 
 # ================================
-# OS Files
+# IDEs & Editors
 # ================================
-Thumbs.db
-Desktop.ini
-*.db
+## VS Code: ignore everything except curated workspace files
+.virtual_documents/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# ================================
+# Jupyter Notebooks
+# ================================
+.ipynb_checkpoints/
+
+# ================================
+# Linters, Type Checkers, Test Caches
+# ================================
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.pytest_cache/
+.tox/
+.nox/
 
 # ================================
 # Logs & Outputs
@@ -102,6 +79,22 @@ logs/
 *.err
 
 # ================================
+# OS Files
+# ================================
+Thumbs.db
+Desktop.ini
+
+# ================================
+# Python
+# ================================
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.bak
+
+# ================================
 # Testing
 # ================================
 .coverage
@@ -110,4 +103,16 @@ coverage.xml
 htmlcov/
 nosetests.xml
 test-output/
-.gradio
+.gradio/
+
+# ================================
+# Virtual Environment
+# ================================
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+*.env
+*.venv
+uv.lock
