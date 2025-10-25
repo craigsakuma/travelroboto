@@ -257,3 +257,6 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Process-wide singleton Settings (FastAPI DI-friendly)."""
     return Settings()
+
+# --- TEMP migration shim (remove after you’ve updated all imports) ---
+settings = get_settings()
